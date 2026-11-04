@@ -1,0 +1,98 @@
+import type { CSSProperties } from "react";
+import Link from "next/link";
+import { Alert, Card, StatusBadge, formatMoney } from "@/components/ui";
+import { canCustomerCancel, getBookingByToken } from "@/modules/booking/booking-service";
+import { formatDate, formatTime } from "@/lib/time";
+import type { AppointmentStatus } from "@/modules/booking/types";
+import { CancelBookingButton } from "@/components/booking/cancel-booking-button";
+
+export const metadata = { title: "รายละเอียดการจอง", robots: { index: false } };
+
+export default async function BookingDetailPage(props: PageProps<"/b/[reference]">) {
+  const { reference } = await props.params;
+  const sp = await props.searchParams;
+  const token = typeof sp.t === "string" ? sp.t : "";
+  const isNew = sp.new === "1";
+  const booking = token ? await getBookingByToken(reference, token) : null;
+
+  if (!booking) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16">
+        <Alert tone="error">ไม่พบการจอง หรือ ลิงก์ไม่ถูกต้อง</Alert>
+      </main>
+    );
+  }
+
+  const tz = booking.branch.timezone;
+  const canCancel = canCustomerCancel(booking);
+
+  return (
+    <main style={{ "--brand": booking.tenant.primary_color } as CSSProperties} className="mx-auto max-w-md space-y-4 px-4 py-10">
+      {isNew && (
+        <div className="text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700">
+            ✓
+          </div>
+          <h1 className="text-xl font-semibold">{booking.status === "pending" ? "ส่งคำขอจองแล้ว" : "จองสำเร็จ"}</h1>
+          <p className="text-sm text-slate-500">กรุณาบันทึกหน้านี้ไว้เพื่อดูหรือยกเลิกการจอง</p>
+        </div>
+      )}
+
+      <Card className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-slate-500">เลขอ้างอิง</p>
+            <p className="font-mono text-xl font-bold tracking-wider">{booking.reference_code}</p>
+          </div>
+          <StatusBadge status={booking.status as AppointmentStatus} />
+        </div>
+        <dl className="grid grid-cols-3 gap-y-2 text-sm">
+          <dt className="text-slate-500">ร้าน</dt>
+          <dd className="col-span-2 font-medium">{booking.tenant.name}</dd>
+          <dt className="text-slate-500">บริการ</dt>
+          <dd className="col-span-2">{booking.service.name}</dd>
+          <dt className="text-slate-500">วันที่</dt>
+          <dd className="col-span-2">{formatDate(booking.starts_at, tz)}</dd>
+          <dt className="text-slate-500">เวลา</dt>
+          <dd className="col-span-2">
+            {formatTime(booking.starts_at, tz)} – {formatTime(booking.ends_at, tz)}
+          </dd>
+          <dt className="text-slate-500">สาขา</dt>
+          <dd className="col-span-2">
+            {booking.branch.name}
+            {booking.branch.address && <span className="block text-slate-500">{booking.branch.address}</span>}
+          </dd>
+          <dt className="text-slate-500">พนักงาน</dt>
+          <dd className="col-span-2">{booking.staff.display_name}</dd>
+          <dt className="text-slate-500">ผู้จอง</dt>
+          <dd className="col-span-2">{booking.customer.full_name}</dd>
+          {Number(booking.price) > 0 && (
+            <>
+              <dt className="text-slate-500">ราคา</dt>
+              <dd className="col-span-2">{formatMoney(Number(booking.price))}</dd>
+            </>
+          )}
+        </dl>
+        {(booking.tenant.contact_phone || booking.tenant.contact_line) && (
+          <p className="border-t border-slate-100 pt-3 text-sm text-slate-500">
+            ติดต่อร้าน: {booking.tenant.contact_phone} {booking.tenant.contact_line && `· LINE ${booking.tenant.contact_line}`}
+          </p>
+        )}
+      </Card>
+
+      {canCancel ? (
+        <CancelBookingButton reference={booking.reference_code} token={token} />
+      ) : (
+        ["pending", "confirmed"].includes(booking.status) && (
+          <p className="text-center text-sm text-slate-500">
+            ยกเลิกออนไลน์ได้ก่อนเวลานัด {booking.tenant.cancel_cutoff_hours} ชั่วโมง — กรุณาติดต่อร้าน
+          </p>
+        )
+      )}
+
+      <Link href={`/s/${booking.tenant.slug}`} className="block text-center text-sm font-medium text-brand">
+        กลับไปหน้าร้าน
+      </Link>
+    </main>
+  );
+}
