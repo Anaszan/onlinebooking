@@ -15,13 +15,13 @@ export default async function ShopPage(props: PageProps<"/s/[slug]">) {
       {tenant.description && <p className="max-w-[60ch] leading-relaxed text-slate-600">{tenant.description}</p>}
 
       <section aria-labelledby="services">
-        <h2 id="services" className="mb-3 text-sm font-semibold text-slate-900">
+        <h2 id="services" className="mb-3 text-lg text-slate-900">
           เลือกบริการ
         </h2>
         {services.length === 0 ? (
           <EmptyState title="ยังไม่มีบริการที่เปิดให้จอง" description="กรุณาติดต่อร้านโดยตรง" />
         ) : (
-          <ul className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <ul className="divide-y divide-slate-100 overflow-hidden rounded-3xl border-2 border-white bg-white shadow-md">
             {services.map((s) => (
               <li key={s.id}>
                 <Link
@@ -39,7 +39,7 @@ export default async function ShopPage(props: PageProps<"/s/[slug]">) {
                   <p className="tnum shrink-0 font-semibold text-slate-900">
                     {Number(s.price) > 0 ? formatMoney(Number(s.price)) : "ฟรี"}
                   </p>
-                  <span className="hidden h-8 shrink-0 items-center gap-1 rounded-lg bg-brand px-3 text-[13px] font-medium text-[var(--brand-fg)] sm:inline-flex">
+                  <span className="hidden h-8 shrink-0 items-center gap-1 btn-candy rounded-full px-4 font-display text-[13px] text-[var(--brand-fg)] sm:inline-flex">
                     จอง
                   </span>
                   <IconChevronRight size={18} className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 sm:hidden" />
@@ -50,9 +50,9 @@ export default async function ShopPage(props: PageProps<"/s/[slug]">) {
         )}
       </section>
 
-      <section className="grid gap-x-8 gap-y-8 border-t border-slate-200 pt-8 text-sm sm:grid-cols-2">
+      <section className="grid gap-x-8 gap-y-8 border-t-2 border-dashed border-slate-200 pt-8 text-sm sm:grid-cols-2">
         <div>
-          <h2 className="mb-3 font-semibold text-slate-900">สาขา</h2>
+          <h2 className="mb-3 text-base text-slate-900">สาขา</h2>
           <ul className="space-y-3 text-slate-600">
             {branches.map((b) => (
               <li key={b.id}>
@@ -76,7 +76,7 @@ export default async function ShopPage(props: PageProps<"/s/[slug]">) {
           </ul>
         </div>
         <div className="text-slate-600">
-          <h2 className="mb-3 font-semibold text-slate-900">ติดต่อร้าน</h2>
+          <h2 className="mb-3 text-base text-slate-900">ติดต่อร้าน</h2>
           <ul className="space-y-1.5">
             {tenant.contact_phone && (
               <li className="flex gap-1.5">

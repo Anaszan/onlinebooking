@@ -103,7 +103,7 @@ export default async function OverviewPage(props: PageProps<"/dashboard/[slug]">
         </Card>
       )}
 
-      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-white lg:grid-cols-4">
+      <dl className="grid grid-cols-2 overflow-hidden rounded-3xl border-2 border-white bg-white shadow-md lg:grid-cols-4">
         {[
           ["คิววันนี้", counts.total],
           ["รอให้บริการ", counts.waiting],
@@ -112,10 +112,10 @@ export default async function OverviewPage(props: PageProps<"/dashboard/[slug]">
         ].map(([label, n], i) => (
           <div
             key={label as string}
-            className={`px-5 py-4 ${i % 2 === 1 ? "border-l" : ""} ${i >= 2 ? "border-t lg:border-t-0" : ""} ${i === 2 ? "lg:border-l" : ""} border-slate-200`}
+            className={`px-5 py-4 ${i % 2 === 1 ? "border-l" : ""} ${i >= 2 ? "border-t lg:border-t-0" : ""} ${i === 2 ? "lg:border-l" : ""} border-slate-100`}
           >
             <dt className="text-[13px] text-slate-500">{label}</dt>
-            <dd className="tnum mt-1 text-2xl font-semibold text-slate-900">{n}</dd>
+            <dd className="tnum mt-1 font-display text-3xl text-brand">{n}</dd>
           </div>
         ))}
       </dl>

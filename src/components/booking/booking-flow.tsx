@@ -133,7 +133,7 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
     <div className="space-y-6">
       <div>
         <p className="text-[13px] text-slate-500">บริการ</p>
-        <h1 className="mt-0.5 text-xl font-semibold tracking-[-0.01em] text-slate-900">{service.name}</h1>
+        <h1 className="mt-0.5 text-2xl text-slate-900">{service.name}</h1>
         <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-slate-500">
           <IconClock size={14} />
           <span className="tnum">
@@ -148,8 +148,8 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
           <li key={s.key} aria-current={i === stepIndex ? "step" : undefined} className="min-w-0">
             <span
               className={cn(
-                "block h-1 rounded-full transition-colors duration-300",
-                i <= stepIndex ? "bg-brand" : "bg-slate-200",
+                "block h-2 rounded-full transition-colors duration-300",
+                i <= stepIndex ? "btn-candy" : "bg-slate-200",
               )}
             />
             <span
@@ -167,7 +167,7 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
       {error && <Alert tone="error">{error}</Alert>}
 
       {step === "branch" && (
-        <div className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="divide-y divide-slate-100 overflow-hidden rounded-3xl border-2 border-white bg-white shadow-md">
           {branches.map((b) => (
             <button
               key={b.id}
@@ -190,7 +190,7 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
 
       {step === "staff" && (
         <div className="space-y-3">
-          <div className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="divide-y divide-slate-100 overflow-hidden rounded-3xl border-2 border-white bg-white shadow-md">
           <button
             onClick={() => {
               setStaffId("any");
@@ -245,9 +245,9 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
                     setSlot(null);
                   }}
                   className={cn(
-                    "h-10 shrink-0 rounded-lg border px-3 text-sm transition-colors",
+                    "h-10 shrink-0 rounded-full border-2 px-4 font-display text-sm transition-colors",
                     d === date
-                      ? "border-brand bg-brand font-medium text-[var(--brand-fg)]"
+                      ? "btn-candy border-transparent text-[var(--brand-fg)]"
                       : "border-slate-200 bg-white text-slate-700 hover:border-slate-400",
                   )}
                 >
@@ -260,7 +260,7 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
           {loadingSlots ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" aria-busy="true">
               {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="h-11 animate-pulse rounded-lg bg-slate-100" />
+                <div key={i} className="h-12 animate-pulse rounded-full bg-slate-100" />
               ))}
             </div>
           ) : slots && slots.length === 0 ? (
@@ -278,9 +278,9 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
                     setStep("details");
                   }}
                   className={cn(
-                    "tnum h-11 rounded-lg border text-sm font-medium transition-colors",
+                    "tnum h-12 rounded-full border-2 text-[15px] font-medium transition-colors",
                     slot?.start === s.start
-                      ? "border-brand bg-brand text-[var(--brand-fg)]"
+                      ? "btn-candy border-transparent text-[var(--brand-fg)]"
                       : "border-slate-200 bg-white text-slate-800 hover:border-brand hover:bg-brand/5",
                   )}
                 >
@@ -298,7 +298,7 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
 
       {step === "details" && slot && (
         <form action={submit} className="space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+          <div className="rounded-3xl border-2 border-white bg-white p-5 text-sm shadow-md">
             <p className="font-medium text-slate-900">{fullFmt.format(new Date(slot.start))}</p>
             <p className="text-slate-600">
               {branch?.name} · {staffId === "any" ? "ไม่ระบุพนักงาน" : branchStaff.find((s) => s.id === staffId)?.name}

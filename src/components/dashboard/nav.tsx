@@ -29,9 +29,9 @@ export function DashboardNav({ slug }: { slug: string }) {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex h-9 shrink-0 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors",
+              "flex h-10 shrink-0 items-center gap-2.5 rounded-full px-3.5 text-sm transition-colors",
               active
-                ? "bg-white font-medium text-slate-900 shadow-sm ring-1 ring-slate-200"
+                ? "bg-white font-display text-slate-900 shadow-md ring-1 ring-slate-200"
                 : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
             )}
           >

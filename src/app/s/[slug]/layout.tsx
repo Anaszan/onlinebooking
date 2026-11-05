@@ -26,19 +26,19 @@ export default async function ShopLayout(props: LayoutProps<"/s/[slug]">) {
   return (
     <div
       style={{ "--brand": tenant.primary_color, "--brand-fg": brandForeground(tenant.primary_color) } as CSSProperties}
-      className="flex min-h-screen flex-col"
+      className="paw-wallpaper flex min-h-screen flex-col"
     >
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b-2 border-white bg-white/70 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4 sm:px-6">
           {tenant.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={tenant.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-200" />
+            <img src={tenant.logo_url} alt="" className="h-11 w-11 rounded-full object-cover ring-1 ring-slate-200" />
           ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand text-base font-semibold text-[var(--brand-fg)]">
+            <div className="btn-candy flex h-11 w-11 items-center justify-center rounded-full font-display text-lg text-[var(--brand-fg)]">
               {tenant.name.slice(0, 1)}
             </div>
           )}
-          <Link href={`/s/${tenant.slug}`} className="min-w-0 truncate text-base font-semibold tracking-[-0.01em] text-slate-900">
+          <Link href={`/s/${tenant.slug}`} className="min-w-0 truncate font-display text-lg text-slate-900">
             {tenant.name}
           </Link>
         </div>

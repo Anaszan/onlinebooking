@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/components/ui";
-import { IconCheck, IconClock } from "@/components/icons";
+import { IconCheck, IconClock, IconPaw } from "@/components/icons";
 
 /*
   Synthetic demo for the landing page — no network, no real shop.
@@ -51,11 +51,11 @@ export function BookingDemo() {
 
   return (
     <div className="relative">
-      <div className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <div className="grid overflow-hidden rounded-[2.25rem] border-[3px] border-white bg-[#fffdf9] shadow-lg ring-1 ring-[#f6d3b5] md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         {/* Customer side */}
-        <section aria-label="ตัวอย่างหน้าจองของลูกค้า" className="border-b border-slate-200 p-5 sm:p-6 md:border-b-0 md:border-r">
+        <section aria-label="ตัวอย่างหน้าจองของลูกค้า" className="border-b-2 border-dashed border-slate-200 p-5 sm:p-7 md:border-b-0 md:border-r-2">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1f5d4c] text-sm font-semibold text-white">บ</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg btn-candy font-display text-sm text-white">บ</span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900">บ้านช่างบาร์เบอร์</p>
               <p className="text-xs text-slate-500">ตัดผมชาย · 45 นาที · ฿250</p>
@@ -70,8 +70,8 @@ export function BookingDemo() {
                 aria-selected={i === day}
                 onClick={() => setDay(i)}
                 className={cn(
-                  "h-8 shrink-0 rounded-md border px-2.5 text-xs font-medium transition-colors",
-                  i === day ? "border-[#1f5d4c] bg-[#1f5d4c] text-white" : "border-slate-200 text-slate-600 hover:border-slate-400",
+                  "h-8 shrink-0 rounded-full border-2 px-3 font-display text-xs transition-colors",
+                  i === day ? "border-brand bg-brand text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300",
                 )}
               >
                 {d}
@@ -90,14 +90,14 @@ export function BookingDemo() {
                   aria-disabled={isTaken || day !== 0}
                   aria-label={isTaken ? `${s} มีคนจองแล้ว` : `จองเวลา ${s}`}
                   className={cn(
-                    "tnum relative h-10 rounded-md border text-sm font-medium transition-[background-color,border-color,color] duration-200",
+                    "tnum relative h-11 rounded-full border-2 text-sm font-medium transition-[background-color,border-color,color] duration-200",
                     isMine
-                      ? "border-[#1f5d4c] bg-[#1f5d4c] text-white"
+                      ? "btn-candy border-transparent text-white"
                       : isTaken
-                        ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400 line-through decoration-slate-400"
+                        ? "cursor-not-allowed border-transparent bg-slate-100 text-slate-400 line-through decoration-slate-400"
                         : day !== 0
                           ? "cursor-default border-slate-200 text-slate-500"
-                          : "border-slate-200 text-slate-800 hover:border-[#1f5d4c] hover:bg-[#1f5d4c]/5",
+                          : "border-slate-200 bg-white text-slate-800 hover:border-brand hover:bg-brand/5",
                   )}
                 >
                   {s}
@@ -124,16 +124,16 @@ export function BookingDemo() {
         </section>
 
         {/* Shop side */}
-        <section aria-label="ตัวอย่างคิวในหลังร้าน" className="bg-slate-50/70 p-5 sm:p-6">
+        <section aria-label="ตัวอย่างคิวในหลังร้าน" className="bg-[#fff4ea] p-5 sm:p-7">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-900">คิววันนี้</p>
+            <p className="inline-flex items-center gap-1.5 font-display text-[15px] text-slate-900"><IconPaw size={14} className="text-brand" />คิววันนี้</p>
             <p className="tnum text-xs text-slate-500">{rows.length} คิว</p>
           </div>
-          <ul className="mt-4 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <ul className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-3xl border-2 border-white bg-white shadow-md">
             {rows.map((r) => (
               <li
                 key={r.time}
-                className={cn("flex items-center gap-3 px-3.5 py-3 text-sm sm:px-4", r.fresh && "animate-[row-in_600ms_cubic-bezier(0.16,1,0.3,1)] bg-amber-50/60")}
+                className={cn("flex items-center gap-3 px-3.5 py-3 text-sm sm:px-4", r.fresh && "animate-[row-in_600ms_cubic-bezier(0.16,1,0.3,1)] bg-amber-50")}
               >
                 <time className="w-11 shrink-0 font-medium text-slate-900">{r.time}</time>
                 <span className="min-w-0 flex-1">
@@ -142,7 +142,7 @@ export function BookingDemo() {
                     {r.service} · {r.staff}
                   </span>
                 </span>
-                <span className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700">
+                <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700">
                   <span className={cn("h-1.5 w-1.5 rounded-full", STATUS[r.status].dot)} />
                   {STATUS[r.status].label}
                 </span>

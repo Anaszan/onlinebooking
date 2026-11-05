@@ -18,13 +18,13 @@ export default async function TenantLayout(props: LayoutProps<"/dashboard/[slug]
       style={{ "--brand": tenant.primary_color, "--brand-fg": brandForeground(tenant.primary_color) } as CSSProperties}
       className="flex min-h-screen flex-col md:flex-row"
     >
-      <aside className="flex flex-col border-b border-slate-200 bg-slate-100/70 md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:border-b-0 md:border-r">
+      <aside className="flex flex-col border-b border-slate-200 bg-[#fff1e4]/80 md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:border-b-0 md:border-r">
         <div className="flex items-center gap-2.5 px-4 pb-3 pt-4 md:px-5 md:pb-5 md:pt-5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-sm font-semibold text-[var(--brand-fg)]">
+          <span className="btn-candy flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-[var(--brand-fg)]">
             {tenant.name.slice(0, 1)}
           </span>
           <div className="min-w-0 flex-1">
-            <Link href="/dashboard?list=1" className="block truncate text-sm font-semibold text-slate-900 hover:underline">
+            <Link href="/dashboard?list=1" className="block truncate font-display text-[15px] text-slate-900 hover:underline">
               {tenant.name}
             </Link>
             <div className="mt-0.5 flex gap-1">
@@ -39,13 +39,13 @@ export default async function TenantLayout(props: LayoutProps<"/dashboard/[slug]
             href={`/s/${tenant.slug}`}
             target="_blank"
             rel="noreferrer"
-            className="flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm text-slate-600 transition-colors hover:bg-slate-200/60 hover:text-slate-900"
+            className="flex h-10 items-center gap-2.5 rounded-full px-3.5 text-sm text-slate-600 transition-colors hover:bg-slate-200/60 hover:text-slate-900"
           >
             <IconArrowUpRight size={16} className="text-slate-400" />
             ดูหน้าร้าน
           </a>
           <form action={signOut}>
-            <button className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm text-slate-600 transition-colors hover:bg-slate-200/60 hover:text-slate-900">
+            <button className="flex h-10 w-full items-center gap-2.5 rounded-full px-3.5 text-left text-sm text-slate-600 transition-colors hover:bg-slate-200/60 hover:text-slate-900">
               <IconLogout size={16} className="text-slate-400" />
               ออกจากระบบ
             </button>

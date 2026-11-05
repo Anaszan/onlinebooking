@@ -19,6 +19,7 @@ export function ActionForm({
   className,
   submitVariant = "primary",
   confirm,
+  submitIcon,
 }: {
   action: Action;
   children?: ReactNode;
@@ -27,6 +28,7 @@ export function ActionForm({
   className?: string;
   submitVariant?: "primary" | "secondary" | "danger" | "ghost";
   confirm?: string;
+  submitIcon?: ReactNode;
 }) {
   const [state, formAction] = useActionState(action, null);
   const ref = useRef<HTMLFormElement>(null);
@@ -47,15 +49,24 @@ export function ActionForm({
       {children}
       {state && !state.ok && <Alert tone="error">{state.error}</Alert>}
       {state?.ok && state.message && <Alert tone="success">{state.message}</Alert>}
-      <SubmitButton label={submitLabel} variant={submitVariant} />
+      <SubmitButton label={submitLabel} variant={submitVariant} icon={submitIcon} />
     </form>
   );
 }
 
-export function SubmitButton({ label, variant = "primary" }: { label: string; variant?: "primary" | "secondary" | "danger" | "ghost" }) {
+export function SubmitButton({
+  label,
+  variant = "primary",
+  icon,
+}: {
+  label: string;
+  variant?: "primary" | "secondary" | "danger" | "ghost";
+  icon?: ReactNode;
+}) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant={variant} size={variant === "primary" ? "md" : "sm"}>
+    <Button type="submit" disabled={pending} variant={variant} size={icon ? "lg" : variant === "primary" ? "md" : "sm"}>
+      {!pending && icon}
       {pending ? "กำลังดำเนินการ..." : label}
     </Button>
   );

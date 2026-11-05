@@ -155,15 +155,58 @@ export const IconLogout = (p: IconProps) => (
   </Svg>
 );
 
-/** SYSRENT wordmark glyph: a booking slot with one cell filled. */
+export const IconLock = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="4.5" y="10.5" width="15" height="10" rx="3" />
+    <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2" />
+  </Svg>
+);
+export const IconEye = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+);
+export const IconEyeOff = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 4l16 16M10.6 6.1A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3 3.6M6.4 7.6C3.9 9.3 2.5 12 2.5 12S6 18 12 18a9 9 0 0 0 4.2-1M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+  </Svg>
+);
+export const IconLogin = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14M4 12h11M11 8l4 4-4 4" />
+  </Svg>
+);
+export const IconUserPlus = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="10" cy="8" r="3.75" />
+    <path d="M3 20c.7-3.700 3.500-6 7-6 1.500 0 2.900.4 4 1.200M18 14v6M15 17h6" />
+  </Svg>
+);
+
+/** Paw print, filled — the house ornament. */
+export function IconPaw({ size = 16, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false" className={className}>
+      <path d="M12 12.2c-2.700 0-5.600 2.700-5.600 5.200 0 1.800 1.300 2.600 2.800 2.600 1.200 0 1.800-.6 2.800-.6s1.600.6 2.800.6c1.500 0 2.800-.8 2.800-2.600 0-2.500-2.900-5.200-5.600-5.200Z" />
+      <ellipse cx="5" cy="10.2" rx="2.200" ry="2.700" transform="rotate(-18 5 10.200)" />
+      <ellipse cx="9.200" cy="5.600" rx="2.200" ry="2.800" transform="rotate(-6 9.200 5.600)" />
+      <ellipse cx="14.800" cy="5.600" rx="2.200" ry="2.800" transform="rotate(6 14.800 5.600)" />
+      <ellipse cx="19" cy="10.200" rx="2.200" ry="2.700" transform="rotate(18 19 10.200)" />
+    </svg>
+  );
+}
+
+/** SYSRENT mark: the round orange cat's face. */
 export function BrandMark({ size = 22 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" />
-      <rect x="5.5" y="5.5" width="5.5" height="5.5" rx="1.25" fill="var(--background, #fff)" opacity="0.35" />
-      <rect x="13" y="5.5" width="5.5" height="5.5" rx="1.25" fill="var(--background, #fff)" opacity="0.35" />
-      <rect x="5.5" y="13" width="5.5" height="5.5" rx="1.25" fill="var(--background, #fff)" opacity="0.35" />
-      <rect x="13" y="13" width="5.5" height="5.5" rx="1.25" fill="var(--background, #fff)" />
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <path d="M5 13 6.500 3.500 13 8.200h6L25.500 3.500 27 13c1.300 2 2 4 2 6 0 6.600-5.800 10.500-13 10.500S3 25.600 3 19c0-2 .7-4 2-6Z" fill="#f08a3c" />
+      <path d="M13.500 8.400h5l-.8 3.200h-3.400Z" fill="#d9600f" opacity=".55" />
+      <ellipse cx="11" cy="18" rx="1.600" ry="2" fill="#3d2314" />
+      <ellipse cx="21" cy="18" rx="1.600" ry="2" fill="#3d2314" />
+      <path d="M14.600 21.600h2.800L16 23Z" fill="#f2788a" />
+      <path d="M13.400 24c1.300 1 2.600 1 2.600-.9 0 1.900 1.300 1.900 2.600.9" fill="none" stroke="#3d2314" strokeWidth="1.100" strokeLinecap="round" />
     </svg>
   );
 }
