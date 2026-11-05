@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { Alert, Card, StatusBadge, formatMoney } from "@/components/ui";
+import { Alert, Card, StatusBadge, brandForeground, formatMoney } from "@/components/ui";
+import { IconArrowLeft, IconCheck } from "@/components/icons";
 import { canCustomerCancel, getBookingByToken } from "@/modules/booking/booking-service";
 import { formatDate, formatTime } from "@/lib/time";
 import type { AppointmentStatus } from "@/modules/booking/types";
@@ -27,26 +28,27 @@ export default async function BookingDetailPage(props: PageProps<"/b/[reference]
   const canCancel = canCustomerCancel(booking);
 
   return (
-    <main style={{ "--brand": booking.tenant.primary_color } as CSSProperties} className="mx-auto max-w-md space-y-4 px-4 py-10">
+    <main style={{ "--brand": booking.tenant.primary_color, "--brand-fg": brandForeground(booking.tenant.primary_color) } as CSSProperties}
+      className="mx-auto w-full max-w-md space-y-5 px-4 py-10 sm:py-14">
       {isNew && (
-        <div className="text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700">
-            ✓
+        <div className="pb-1 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white">
+            <IconCheck size={24} strokeWidth={2.25} />
           </div>
-          <h1 className="text-xl font-semibold">{booking.status === "pending" ? "ส่งคำขอจองแล้ว" : "จองสำเร็จ"}</h1>
-          <p className="text-sm text-slate-500">กรุณาบันทึกหน้านี้ไว้เพื่อดูหรือยกเลิกการจอง</p>
+          <h1 className="text-xl font-semibold tracking-[-0.01em] text-slate-900">{booking.status === "pending" ? "ส่งคำขอจองแล้ว" : "จองสำเร็จ"}</h1>
+          <p className="mt-1 text-sm text-slate-500">กรุณาบันทึกหน้านี้ไว้เพื่อดูหรือยกเลิกการจอง</p>
         </div>
       )}
 
-      <Card className="space-y-4">
-        <div className="flex items-center justify-between">
+      <Card className="p-0">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 mb-5">
           <div>
             <p className="text-xs text-slate-500">เลขอ้างอิง</p>
-            <p className="font-mono text-xl font-bold tracking-wider">{booking.reference_code}</p>
+            <p className="mt-0.5 font-mono text-xl font-medium tracking-wider text-slate-900">{booking.reference_code}</p>
           </div>
           <StatusBadge status={booking.status as AppointmentStatus} />
         </div>
-        <dl className="grid grid-cols-3 gap-y-2 text-sm">
+        <dl className="grid grid-cols-3 gap-x-3 gap-y-2.5 px-5 pb-5 text-sm">
           <dt className="text-slate-500">ร้าน</dt>
           <dd className="col-span-2 font-medium">{booking.tenant.name}</dd>
           <dt className="text-slate-500">บริการ</dt>
@@ -74,7 +76,7 @@ export default async function BookingDetailPage(props: PageProps<"/b/[reference]
           )}
         </dl>
         {(booking.tenant.contact_phone || booking.tenant.contact_line) && (
-          <p className="border-t border-slate-100 pt-3 text-sm text-slate-500">
+          <p className="border-t border-slate-200 px-5 py-3.5 text-sm text-slate-500">
             ติดต่อร้าน: {booking.tenant.contact_phone} {booking.tenant.contact_line && `· LINE ${booking.tenant.contact_line}`}
           </p>
         )}
@@ -90,7 +92,8 @@ export default async function BookingDetailPage(props: PageProps<"/b/[reference]
         )
       )}
 
-      <Link href={`/s/${booking.tenant.slug}`} className="block text-center text-sm font-medium text-brand">
+      <Link href={`/s/${booking.tenant.slug}`} className="flex items-center justify-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900">
+        <IconArrowLeft size={15} />
         กลับไปหน้าร้าน
       </Link>
     </main>

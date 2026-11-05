@@ -6,6 +6,7 @@ import { getTenantContext } from "@/lib/auth";
 import { WEEKDAY_LABELS_TH } from "@/lib/time";
 import type { Branch, Service, Staff, WorkingHour } from "@/modules/booking/types";
 import { saveStaff, saveStaffServices, saveWorkingHours } from "../../actions";
+import { IconArrowLeft } from "@/components/icons";
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon..Sun
 
@@ -30,8 +31,9 @@ export default async function StaffDetailPage(props: PageProps<"/dashboard/[slug
 
   return (
     <div className="space-y-6">
-      <Link href={`/dashboard/${slug}/staff`} className="text-sm text-slate-500">
-        ← พนักงานทั้งหมด
+      <Link href={`/dashboard/${slug}/staff`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
+        <IconArrowLeft size={14} />
+        พนักงานทั้งหมด
       </Link>
       <PageHeader title={st.display_name} description={branches.find((x) => x.id === st.branch_id)?.name} />
 

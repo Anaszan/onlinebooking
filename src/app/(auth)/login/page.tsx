@@ -9,8 +9,8 @@ export default async function LoginPage(props: PageProps<"/login">) {
   const { next } = await props.searchParams;
   return (
     <>
-      <h1 className="mb-1 text-xl font-semibold">เข้าสู่ระบบร้านค้า</h1>
-      <p className="mb-6 text-sm text-slate-500">จัดการคิว บริการ และพนักงานของร้านคุณ</p>
+      <h1 className="text-xl font-semibold tracking-[-0.01em] text-slate-900">เข้าสู่ระบบร้านค้า</h1>
+      <p className="mb-7 mt-1.5 text-sm text-slate-500">จัดการคิว บริการ และพนักงานของร้านคุณ</p>
       <ActionForm action={signIn} submitLabel="เข้าสู่ระบบ">
         <input type="hidden" name="next" value={typeof next === "string" ? next : ""} />
         <Field label="อีเมล" name="email" type="email" autoComplete="email" required />
@@ -18,7 +18,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
       </ActionForm>
       <p className="mt-6 text-center text-sm text-slate-500">
         ยังไม่มีบัญชี?{" "}
-        <Link href="/signup" className="font-medium text-brand">
+        <Link href="/signup" className="font-medium text-slate-900 underline hover:no-underline">
           สมัครใช้งานฟรี
         </Link>
       </p>

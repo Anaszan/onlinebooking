@@ -6,6 +6,7 @@ import { getTenantContext } from "@/lib/auth";
 import { addDays, dayRangeUtc, formatTime, toDateKey, weekdayOf, WEEKDAY_LABELS_TH } from "@/lib/time";
 import { STATUS_LABELS, type AppointmentStatus, type Branch, type Service, type Staff } from "@/modules/booking/types";
 import { createManualBooking } from "../actions";
+import { IconChevronLeft, IconChevronRight } from "@/components/icons";
 
 export const metadata = { title: "คิว / นัดหมาย" };
 
@@ -135,29 +136,29 @@ export default async function AppointmentsPage(props: PageProps<"/dashboard/[slu
             <Input id="q" name="q" defaultValue={q} placeholder="ชื่อ / เบอร์" />
           </div>
           <div className="flex items-end">
-            <button className="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">กรอง</button>
+            <button className="h-10 w-full rounded-lg bg-slate-900 px-4 text-sm font-medium text-white shadow-sm hover:bg-slate-800">กรอง</button>
           </div>
         </form>
       </Card>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Link href={qs({ date: addDays(date, view === "week" ? -7 : -1) })} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm">
-          ←
+        <Link href={qs({ date: addDays(date, view === "week" ? -7 : -1) })} aria-label="ก่อนหน้า" className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm shadow-sm hover:bg-slate-50 w-9 px-0">
+          <IconChevronLeft />
         </Link>
-        <Link href={qs({ date: toDateKey(new Date(), tz) })} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm">
+        <Link href={qs({ date: toDateKey(new Date(), tz) })} className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm shadow-sm hover:bg-slate-50">
           วันนี้
         </Link>
-        <Link href={qs({ date: addDays(date, view === "week" ? 7 : 1) })} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm">
-          →
+        <Link href={qs({ date: addDays(date, view === "week" ? 7 : 1) })} aria-label="ถัดไป" className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm shadow-sm hover:bg-slate-50 w-9 px-0">
+          <IconChevronRight />
         </Link>
-        <span className="ml-2 font-medium">
+        <span className="ml-2 font-medium text-slate-900">
           {view === "week" ? `${dayLabel(rangeStart)} – ${dayLabel(addDays(rangeStart, 6))}` : dayLabel(date)}
         </span>
-        <span className="ml-auto inline-flex overflow-hidden rounded-lg border border-slate-300 text-sm">
-          <Link href={qs({ view: "day" })} className={cn("px-3 py-1.5", view === "day" ? "bg-slate-900 text-white" : "bg-white")}>
+        <span className="ml-auto inline-flex h-9 overflow-hidden rounded-lg border border-slate-300 bg-white text-sm shadow-sm">
+          <Link href={qs({ view: "day" })} className={cn("inline-flex items-center px-3", view === "day" ? "bg-slate-900 text-white" : "hover:bg-slate-50")}>
             รายวัน
           </Link>
-          <Link href={qs({ view: "week" })} className={cn("px-3 py-1.5", view === "week" ? "bg-slate-900 text-white" : "bg-white")}>
+          <Link href={qs({ view: "week" })} className={cn("inline-flex items-center px-3", view === "week" ? "bg-slate-900 text-white" : "hover:bg-slate-50")}>
             รายสัปดาห์
           </Link>
         </span>
@@ -165,7 +166,7 @@ export default async function AppointmentsPage(props: PageProps<"/dashboard/[slu
 
       {view === "day" ? (
         staff.length === 0 ? (
-          <EmptyState title="ยังไม่มีพนักงานในสาขานี้" action={<Link href={`/dashboard/${slug}/staff`} className="text-sm font-medium text-brand">เพิ่มพนักงาน →</Link>} />
+          <EmptyState title="ยังไม่มีพนักงานในสาขานี้" action={<Link href={`/dashboard/${slug}/staff`} className="inline-flex items-center gap-1 text-sm font-medium text-slate-900 underline hover:no-underline">เพิ่มพนักงาน<IconChevronRight size={14} /></Link>} />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {staff.map((s) => {

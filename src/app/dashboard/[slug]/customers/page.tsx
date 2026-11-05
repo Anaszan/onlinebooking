@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, EmptyState, Input, PageHeader } from "@/components/ui";
 import { getTenantContext } from "@/lib/auth";
 import type { Customer } from "@/modules/booking/types";
+import { IconChevronLeft, IconChevronRight } from "@/components/icons";
 
 export const metadata = { title: "ลูกค้า" };
 const PAGE_SIZE = 30;
@@ -62,12 +63,12 @@ export default async function CustomersPage(props: PageProps<"/dashboard/[slug]/
         </Card>
       )}
       {pages > 1 && (
-        <div className="flex gap-2 text-sm">
-          {page > 1 && <Link href={`?q=${encodeURIComponent(q)}&page=${page - 1}`}>← ก่อนหน้า</Link>}
+        <div className="flex items-center gap-3 text-sm">
+          {page > 1 && <Link href={`?q=${encodeURIComponent(q)}&page=${page - 1}`} className="inline-flex items-center gap-1 font-medium text-slate-700 hover:text-slate-900"><IconChevronLeft size={14} />ก่อนหน้า</Link>}
           <span className="text-slate-500">
             หน้า {page}/{pages}
           </span>
-          {page < pages && <Link href={`?q=${encodeURIComponent(q)}&page=${page + 1}`}>ถัดไป →</Link>}
+          {page < pages && <Link href={`?q=${encodeURIComponent(q)}&page=${page + 1}`} className="inline-flex items-center gap-1 font-medium text-slate-700 hover:text-slate-900">ถัดไป<IconChevronRight size={14} /></Link>}
         </div>
       )}
     </div>

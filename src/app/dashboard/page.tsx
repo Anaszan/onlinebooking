@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ROLE_LABELS, type MemberRole } from "@/modules/booking/types";
 import { createTenant } from "./actions";
 import { signOut } from "../(auth)/actions";
+import { Wordmark } from "@/components/wordmark";
 
 export const metadata = { title: "ร้านของฉัน" };
 
@@ -27,15 +28,18 @@ export default async function DashboardHome(props: PageProps<"/dashboard">) {
   const admin = await isPlatformAdmin();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <div className="mb-8 flex items-center justify-between">
+    <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:py-16">
+      <div className="mb-10">
+        <Wordmark />
+      </div>
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-semibold">ร้านของฉัน</h1>
-          <p className="text-sm text-slate-500">{user.email}</p>
+          <h1 className="text-[22px] font-semibold tracking-[-0.01em]">ร้านของฉัน</h1>
+          <p className="mt-1 text-sm text-slate-500">{user.email}</p>
         </div>
         <div className="flex items-center gap-3">
           {admin && (
-            <Link href="/platform" className="text-sm font-medium text-brand">
+            <Link href="/platform" className="text-sm font-medium text-slate-700 hover:text-slate-900">
               Super Admin
             </Link>
           )}
@@ -46,16 +50,16 @@ export default async function DashboardHome(props: PageProps<"/dashboard">) {
       </div>
 
       {memberships.length > 0 && (
-        <div className="mb-8 space-y-2">
+        <div className="mb-8 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white">
           {memberships.map((m) => (
             <Link
               key={m.tenant.id}
               href={`/dashboard/${m.tenant.slug}`}
-              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 hover:border-brand"
+              className="flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-slate-50"
             >
               <div>
                 <p className="font-medium">{m.tenant.name}</p>
-                <p className="text-sm text-slate-500">/{m.tenant.slug}</p>
+                <p className="font-mono text-xs text-slate-500">/{m.tenant.slug}</p>
               </div>
               <div className="flex gap-2">
                 <Badge>{ROLE_LABELS[m.role]}</Badge>

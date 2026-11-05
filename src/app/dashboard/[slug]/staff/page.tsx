@@ -5,6 +5,7 @@ import { getTenantContext } from "@/lib/auth";
 import { WEEKDAY_LABELS_TH } from "@/lib/time";
 import type { Branch, Staff, WorkingHour } from "@/modules/booking/types";
 import { saveStaff } from "../actions";
+import { IconChevronRight } from "@/components/icons";
 
 export const metadata = { title: "พนักงาน" };
 
@@ -42,10 +43,10 @@ export default async function StaffPage(props: PageProps<"/dashboard/[slug]/staf
                         {branches.find((x) => x.id === st.branch_id)?.name}
                       </p>
                       <p className="mt-1 text-xs text-slate-400">
-                        {days.length ? `ทำงาน: ${days.map((d) => WEEKDAY_LABELS_TH[d].slice(0, 2)).join(" ")}` : "⚠ ยังไม่ได้ตั้งเวลาทำงาน"}
+                        {days.length ? `ทำงาน: ${days.map((d) => WEEKDAY_LABELS_TH[d].slice(0, 2)).join(" ")}` : "ยังไม่ได้ตั้งเวลาทำงาน"}
                       </p>
                     </div>
-                    <span className="text-sm text-brand">ตั้งค่า →</span>
+                    <span className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-slate-600">ตั้งค่า<IconChevronRight size={14} /></span>
                   </Card>
                 </Link>
               );

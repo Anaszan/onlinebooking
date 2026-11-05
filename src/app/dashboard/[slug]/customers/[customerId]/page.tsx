@@ -6,6 +6,7 @@ import { getTenantContext } from "@/lib/auth";
 import { formatDateTime } from "@/lib/time";
 import type { AppointmentStatus, Customer } from "@/modules/booking/types";
 import { updateCustomer } from "../../actions";
+import { IconArrowLeft } from "@/components/icons";
 
 export default async function CustomerDetailPage(props: PageProps<"/dashboard/[slug]/customers/[customerId]">) {
   const { slug, customerId } = await props.params;
@@ -35,8 +36,9 @@ export default async function CustomerDetailPage(props: PageProps<"/dashboard/[s
 
   return (
     <div className="space-y-6">
-      <Link href={`/dashboard/${slug}/customers`} className="text-sm text-slate-500">
-        ← ลูกค้าทั้งหมด
+      <Link href={`/dashboard/${slug}/customers`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
+        <IconArrowLeft size={14} />
+        ลูกค้าทั้งหมด
       </Link>
       <PageHeader
         title={c.full_name}

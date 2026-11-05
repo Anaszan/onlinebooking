@@ -5,6 +5,7 @@ import { Card, Input, Label, PageHeader, Select } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import type { Plan, Tenant } from "@/modules/booking/types";
 import { updateSubscription } from "../../actions";
+import { IconArrowLeft, IconArrowUpRight } from "@/components/icons";
 
 export default async function PlatformTenantPage(props: PageProps<"/platform/tenants/[id]">) {
   const { id } = await props.params;
@@ -39,18 +40,20 @@ export default async function PlatformTenantPage(props: PageProps<"/platform/ten
 
   return (
     <div className="space-y-6">
-      <Link href="/platform" className="text-sm text-slate-500">
-        ← ร้านค้าทั้งหมด
+      <Link href="/platform" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
+        <IconArrowLeft size={14} />
+        ร้านค้าทั้งหมด
       </Link>
       <PageHeader
         title={t.name}
         description={`/${t.slug} · ${t.id}`}
         actions={
           <>
-            <a href={`/s/${t.slug}`} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-              หน้าร้าน ↗
+            <a href={`/s/${t.slug}`} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-sm shadow-sm hover:bg-slate-50">
+              หน้าร้าน
+              <IconArrowUpRight size={14} />
             </a>
-            <Link href={`/dashboard/${t.slug}`} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+            <Link href={`/dashboard/${t.slug}`} className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-sm shadow-sm hover:bg-slate-50">
               เปิด Dashboard (support)
             </Link>
           </>

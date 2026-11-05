@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Input, Label, Textarea, cn, formatMoney } from "@/components/ui";
+import { IconArrowLeft, IconChevronRight, IconClock } from "@/components/icons";
 
 interface Props {
   tenantSlug: string;
@@ -129,29 +130,36 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
   }
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-sm text-slate-500">บริการ</p>
-        <p className="text-lg font-semibold">{service.name}</p>
-        <p className="text-sm text-slate-500">
-          {service.duration} นาที · {service.price > 0 ? formatMoney(service.price) : "ฟรี"}
+    <div className="space-y-6">
+      <div>
+        <p className="text-[13px] text-slate-500">บริการ</p>
+        <h1 className="mt-0.5 text-xl font-semibold tracking-[-0.01em] text-slate-900">{service.name}</h1>
+        <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-slate-500">
+          <IconClock size={14} />
+          <span className="tnum">
+            {service.duration} นาที · {service.price > 0 ? formatMoney(service.price) : "ฟรี"}
+          </span>
         </p>
       </div>
 
       {/* Stepper */}
-      <ol className="flex gap-2 text-xs sm:text-sm" aria-label="ขั้นตอนการจอง">
+      <ol className="grid gap-2 pt-1" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }} aria-label="ขั้นตอนการจอง">
         {steps.map((s, i) => (
-          <li
-            key={s.key}
-            aria-current={i === stepIndex ? "step" : undefined}
-            className={cn(
-              "flex-1 rounded-full px-2 py-1.5 text-center",
-              i < stepIndex && "bg-brand/15 text-brand",
-              i === stepIndex && "bg-brand font-medium text-white",
-              i > stepIndex && "bg-slate-100 text-slate-500",
-            )}
-          >
-            {i + 1}. {s.label}
+          <li key={s.key} aria-current={i === stepIndex ? "step" : undefined} className="min-w-0">
+            <span
+              className={cn(
+                "block h-1 rounded-full transition-colors duration-300",
+                i <= stepIndex ? "bg-brand" : "bg-slate-200",
+              )}
+            />
+            <span
+              className={cn(
+                "mt-2 block truncate text-xs",
+                i === stepIndex ? "font-medium text-slate-900" : i < stepIndex ? "text-slate-600" : "text-slate-400",
+              )}
+            >
+              {s.label}
+            </span>
           </li>
         ))}
       </ol>
@@ -159,7 +167,7 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
       {error && <Alert tone="error">{error}</Alert>}
 
       {step === "branch" && (
-        <div className="space-y-2">
+        <div className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white">
           {branches.map((b) => (
             <button
               key={b.id}
@@ -168,26 +176,33 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
                 setStaffId("any");
                 setStep("staff");
               }}
-              className="block w-full rounded-xl border border-slate-200 bg-white p-4 text-left hover:border-brand"
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50"
             >
-              <p className="font-medium">{b.name}</p>
-              {b.address && <p className="text-sm text-slate-500">{b.address}</p>}
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium text-slate-900">{b.name}</span>
+                {b.address && <span className="block text-sm text-slate-500">{b.address}</span>}
+              </span>
+              <IconChevronRight size={18} className="shrink-0 text-slate-400" />
             </button>
           ))}
         </div>
       )}
 
       {step === "staff" && (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <div className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white">
           <button
             onClick={() => {
               setStaffId("any");
               setStep("time");
             }}
-            className="block w-full rounded-xl border border-slate-200 bg-white p-4 text-left hover:border-brand"
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50"
           >
-            <p className="font-medium">ไม่ระบุพนักงาน</p>
-            <p className="text-sm text-slate-500">ระบบเลือกพนักงานที่ว่างให้อัตโนมัติ</p>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium text-slate-900">ไม่ระบุพนักงาน</span>
+              <span className="block text-sm text-slate-500">ระบบเลือกพนักงานที่ว่างให้อัตโนมัติ</span>
+            </span>
+            <IconChevronRight size={18} className="shrink-0 text-slate-400" />
           </button>
           {branchStaff.map((s) => (
             <button
@@ -196,20 +211,23 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
                 setStaffId(s.id);
                 setStep("time");
               }}
-              className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 text-left hover:border-brand"
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-600">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">
                 {s.name.slice(0, 1)}
               </span>
-              <span>
-                <span className="block font-medium">{s.name}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium text-slate-900">{s.name}</span>
                 {s.title && <span className="block text-sm text-slate-500">{s.title}</span>}
               </span>
+              <IconChevronRight size={18} className="shrink-0 text-slate-400" />
             </button>
           ))}
+          </div>
           {branches.length > 1 && (
-            <Button variant="ghost" onClick={() => setStep("branch")}>
-              ← เปลี่ยนสาขา
+            <Button variant="ghost" size="sm" className="-ml-2" onClick={() => setStep("branch")}>
+              <IconArrowLeft />
+              เปลี่ยนสาขา
             </Button>
           )}
         </div>
@@ -227,8 +245,10 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
                     setSlot(null);
                   }}
                   className={cn(
-                    "shrink-0 rounded-lg border px-3 py-2 text-sm",
-                    d === date ? "border-brand bg-brand text-white" : "border-slate-200 bg-white hover:border-brand",
+                    "h-10 shrink-0 rounded-lg border px-3 text-sm transition-colors",
+                    d === date
+                      ? "border-brand bg-brand font-medium text-[var(--brand-fg)]"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-400",
                   )}
                 >
                   {dayFmt.format(new Date(`${d}T00:00:00Z`))}
@@ -240,11 +260,11 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
           {loadingSlots ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" aria-busy="true">
               {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="h-10 animate-pulse rounded-lg bg-slate-200" />
+                <div key={i} className="h-11 animate-pulse rounded-lg bg-slate-100" />
               ))}
             </div>
           ) : slots && slots.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+            <p className="rounded-xl border border-slate-200 bg-slate-50/60 p-6 text-center text-sm text-slate-500">
               ไม่มีเวลาว่างในวันนี้ ลองเลือกวันอื่น
             </p>
           ) : (
@@ -258,8 +278,10 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
                     setStep("details");
                   }}
                   className={cn(
-                    "rounded-lg border py-2 text-sm font-medium",
-                    slot?.start === s.start ? "border-brand bg-brand text-white" : "border-slate-200 bg-white hover:border-brand",
+                    "tnum h-11 rounded-lg border text-sm font-medium transition-colors",
+                    slot?.start === s.start
+                      ? "border-brand bg-brand text-[var(--brand-fg)]"
+                      : "border-slate-200 bg-white text-slate-800 hover:border-brand hover:bg-brand/5",
                   )}
                 >
                   {s.time}
@@ -267,16 +289,17 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
               ))}
             </div>
           )}
-          <Button variant="ghost" onClick={() => setStep("staff")}>
-            ← เปลี่ยนพนักงาน
+          <Button variant="ghost" size="sm" className="-ml-2" onClick={() => setStep("staff")}>
+            <IconArrowLeft />
+            เปลี่ยนพนักงาน
           </Button>
         </div>
       )}
 
       {step === "details" && slot && (
         <form action={submit} className="space-y-4">
-          <div className="rounded-xl border border-brand/30 bg-brand/5 p-4 text-sm">
-            <p className="font-medium">{fullFmt.format(new Date(slot.start))}</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+            <p className="font-medium text-slate-900">{fullFmt.format(new Date(slot.start))}</p>
             <p className="text-slate-600">
               {branch?.name} · {staffId === "any" ? "ไม่ระบุพนักงาน" : branchStaff.find((s) => s.id === staffId)?.name}
             </p>
@@ -308,7 +331,8 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={() => setStep("time")} disabled={submitting}>
-              ← ย้อนกลับ
+              <IconArrowLeft />
+              ย้อนกลับ
             </Button>
             <Button type="submit" className="flex-1" disabled={submitting}>
               {submitting ? "กำลังจอง..." : "ยืนยันการจอง"}
