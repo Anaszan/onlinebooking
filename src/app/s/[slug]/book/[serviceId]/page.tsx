@@ -26,7 +26,13 @@ export default async function BookServicePage(props: PageProps<"/s/[slug]/book/[
   return (
     <BookingFlow
       tenantSlug={sf.tenant.slug}
-      service={{ id: service.id, name: service.name, duration: service.duration_minutes, price: Number(service.price) }}
+      service={{
+        id: service.id,
+        name: service.name,
+        duration: service.duration_minutes,
+        price: Number(service.price),
+        species: service.species ?? [],
+      }}
       branches={branches.map((b) => ({ id: b.id, name: b.name, address: b.address, timezone: b.timezone }))}
       staff={staff.map((s) => ({ id: s.id, name: s.display_name, title: s.title, branchId: s.branch_id }))}
       days={days}

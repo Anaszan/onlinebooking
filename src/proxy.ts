@@ -71,7 +71,7 @@ export async function proxy(request: NextRequest) {
     if (!tenantSlug) {
       return new NextResponse("Not found", { status: 404 });
     }
-    if (/^\/(dashboard|platform)(\/|$)/.test(pathname)) {
+    if (/^\/(dashboard|platform|account)(\/|$)/.test(pathname)) {
       // merchant/admin areas live on the platform domain only
       return new NextResponse("Not found", { status: 404 });
     }
@@ -87,7 +87,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // ---- session refresh (only where auth matters) ----
-  if (SUPABASE_URL && SUPABASE_KEY && /^\/(dashboard|platform|login|signup|auth|api\/booking|api\/platform)/.test(pathname)) {
+  if (SUPABASE_URL && SUPABASE_KEY && /^\/(dashboard|platform|account|login|signup|auth|api\/booking|api\/platform)/.test(pathname)) {
     const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
       cookies: {
         getAll() {
@@ -103,7 +103,7 @@ export async function proxy(request: NextRequest) {
       },
     });
     const { data } = await supabase.auth.getClaims();
-    const isProtected = /^\/(dashboard|platform)(\/|$)/.test(pathname);
+    const isProtected = /^\/(dashboard|platform|account)(\/|$)/.test(pathname);
     if (isProtected && !data?.claims) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";

@@ -4,7 +4,7 @@ import { ActionForm } from "@/components/action-form";
 import { Card, Field, Label, PageHeader, StatusBadge, Textarea, formatMoney } from "@/components/ui";
 import { getTenantContext } from "@/lib/auth";
 import { formatDateTime } from "@/lib/time";
-import type { AppointmentStatus, Customer } from "@/modules/booking/types";
+import { SPECIES_EMOJI, SPECIES_LABELS, type AppointmentStatus, type Customer, type Pet } from "@/modules/booking/types";
 import { updateCustomer } from "../../actions";
 import { IconArrowLeft } from "@/components/icons";
 
@@ -31,6 +31,19 @@ export default async function CustomerDetailPage(props: PageProps<"/dashboard/[s
     staff: { display_name: string };
     branch: { timezone: string };
   }[];
+  const { data: petRows } = await supabase
+    .from("booking_pets")
+    .select("*")
+    .eq("tenant_id", tenant.id)
+    .eq("customer_id", c.id)
+    .order("created_at");
+  const pets = (petRows ?? []) as Pet[];
+  const petPhotoPaths = pets.map((p) => p.photo_path).filter((p): p is string => !!p);
+  const petPhotos = new Map<string, string>();
+  if (petPhotoPaths.length) {
+    const { data: signed } = await supabase.storage.from("pet-photos").createSignedUrls(petPhotoPaths, 3600);
+    for (const s of signed ?? []) if (s.path && s.signedUrl) petPhotos.set(s.path, s.signedUrl);
+  }
   const completed = history.filter((h) => h.status === "completed");
   const noShows = history.filter((h) => h.status === "no_show").length;
 
@@ -63,6 +76,42 @@ export default async function CustomerDetailPage(props: PageProps<"/dashboard/[s
           <p className="text-2xl font-semibold">{noShows}</p>
         </Card>
       </div>
+      <section aria-labelledby="pets">
+        <h2 id="pets" className="mb-3 font-semibold">สัตว์เลี้ยง</h2>
+        {pets.length === 0 ? (
+          <p className="text-sm text-slate-500">ยังไม่มีข้อมูลสัตว์เลี้ยง</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {pets.map((p) => {
+              const url = p.photo_path ? petPhotos.get(p.photo_path) : undefined;
+              return (
+                <Card key={p.id} className="flex gap-3 p-4">
+                  {url ? (
+                    <a href={url} target="_blank" rel="noreferrer" className="shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`รูปของ ${p.name}`} className="h-20 w-20 rounded-2xl object-cover" />
+                    </a>
+                  ) : (
+                    <span aria-hidden className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-3xl">
+                      {SPECIES_EMOJI[p.species]}
+                    </span>
+                  )}
+                  <div className="min-w-0 text-sm">
+                    <p className="font-display text-base text-slate-900">{p.name}</p>
+                    <p className="text-slate-500">
+                      {SPECIES_LABELS[p.species]}
+                      {p.breed && ` · ${p.breed}`}
+                      {p.weight_kg && ` · ${Number(p.weight_kg)} กก.`}
+                    </p>
+                    {p.notes && <p className="mt-1 rounded-lg bg-rose-50 px-2 py-1 text-xs text-rose-800">{p.notes}</p>}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       <div className="grid gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3">
           <h2 className="mb-3 font-semibold">ประวัติการจอง</h2>

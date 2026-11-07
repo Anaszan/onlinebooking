@@ -27,6 +27,9 @@ const MESSAGES: Record<string, [number, string]> = {
   INVALID_TRANSITION: [422, "ไม่สามารถเปลี่ยนสถานะนี้ได้"],
   STAFF_CANNOT_PERFORM_SERVICE: [422, "พนักงานคนนี้ไม่ได้ให้บริการนี้"],
   SLUG_RESERVED: [422, "ชื่อร้าน (slug) นี้ถูกสงวนไว้"],
+  PET_REQUIRED: [422, "กรุณากรอกชื่อและประเภทสัตว์เลี้ยง"],
+  SPECIES_NOT_SUPPORTED: [422, "บริการนี้ไม่รองรับสัตว์เลี้ยงประเภทนี้"],
+  INVALID_PHOTO: [422, "รูปสัตว์เลี้ยงไม่ถูกต้อง"],
   FORBIDDEN: [403, "คุณไม่มีสิทธิ์ทำรายการนี้"],
   NOT_FOUND: [404, "ไม่พบข้อมูล"],
   UNAUTHENTICATED: [401, "กรุณาเข้าสู่ระบบ"],
@@ -42,6 +45,7 @@ export function fromDbError(err: PgLikeError): AppError {
     return new AppError("CONFLICT", "ข้อมูลซ้ำ", 409);
   }
   if (err.code === "23514") return new AppError("VALIDATION", "ข้อมูลไม่ถูกต้อง", 422);
+  if (err.code === "23503") return new AppError("IN_USE", "ข้อมูลนี้ถูกใช้งานอยู่ (มีประวัติการจอง) จึงลบไม่ได้", 409);
   if (err.code === "42501" || /row-level security/i.test(msg)) {
     return new AppError("FORBIDDEN", MESSAGES.FORBIDDEN[1], 403);
   }

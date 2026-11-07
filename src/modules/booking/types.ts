@@ -30,6 +30,7 @@ export interface Tenant {
   logo_url: string | null;
   cover_url: string | null;
   primary_color: string;
+  accent_color: string;
   contact_phone: string | null;
   contact_email: string | null;
   contact_line: string | null;
@@ -67,6 +68,47 @@ export interface Service {
   is_online_bookable: boolean;
   is_active: boolean;
   sort_order: number;
+  category: ServiceCategory;
+  species: Species[];
+}
+
+export type Species = "dog" | "cat" | "rabbit" | "bird" | "other";
+export type ServiceCategory = "grooming" | "bath" | "spa" | "boarding" | "daycare" | "vet" | "vaccine" | "training" | "other";
+
+export const SPECIES: Species[] = ["dog", "cat", "rabbit", "bird", "other"];
+export const SPECIES_LABELS: Record<Species, string> = {
+  dog: "สุนัข",
+  cat: "แมว",
+  rabbit: "กระต่าย",
+  bird: "นก",
+  other: "อื่น ๆ",
+};
+export const SPECIES_EMOJI: Record<Species, string> = { dog: "🐶", cat: "🐱", rabbit: "🐰", bird: "🐦", other: "🐾" };
+
+export const SERVICE_CATEGORIES: ServiceCategory[] = ["grooming", "bath", "spa", "boarding", "daycare", "vet", "vaccine", "training", "other"];
+export const CATEGORY_LABELS: Record<ServiceCategory, string> = {
+  grooming: "ตัดขน / กรูมมิ่ง",
+  bath: "อาบน้ำ",
+  spa: "สปา",
+  boarding: "รับฝากเลี้ยง",
+  daycare: "เดย์แคร์",
+  vet: "ตรวจสุขภาพ",
+  vaccine: "ฉีดวัคซีน",
+  training: "ฝึกพฤติกรรม",
+  other: "บริการอื่น ๆ",
+};
+
+export interface Pet {
+  id: string;
+  tenant_id: string;
+  customer_id: string;
+  name: string;
+  species: Species;
+  breed: string | null;
+  weight_kg: number | null;
+  notes: string | null;
+  photo_path: string | null;
+  created_at: string;
 }
 
 export interface Staff {

@@ -2,14 +2,15 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { getTenantContext } from "@/lib/auth";
 import { Alert, Badge, brandForeground } from "@/components/ui";
-import { IconArrowUpRight, IconLogout } from "@/components/icons";
+import { IconArrowUpRight, IconLogout, IconSettings } from "@/components/icons";
 import { ROLE_LABELS } from "@/modules/booking/types";
 import { DashboardNav } from "@/components/dashboard/nav";
 import { signOut } from "@/app/(auth)/actions";
 
 export default async function TenantLayout(props: LayoutProps<"/dashboard/[slug]">) {
   const { slug } = await props.params;
-  const { tenant, role, user } = await getTenantContext(slug);
+  const { tenant, role, user, canManage, canAdmin } = await getTenantContext(slug);
+  const navLevel = canAdmin ? 2 : canManage ? 1 : 0;
 
   const statusTone = tenant.status === "active" ? "green" : tenant.status === "trial" ? "blue" : "red";
 
@@ -33,7 +34,7 @@ export default async function TenantLayout(props: LayoutProps<"/dashboard/[slug]
             </div>
           </div>
         </div>
-        <DashboardNav slug={slug} />
+        <DashboardNav slug={slug} level={navLevel} />
         <div className="mt-auto hidden space-y-1 border-t border-slate-200 px-3 py-3 md:block">
           <a
             href={`/s/${tenant.slug}`}
@@ -44,6 +45,13 @@ export default async function TenantLayout(props: LayoutProps<"/dashboard/[slug]
             <IconArrowUpRight size={16} className="text-slate-400" />
             ดูหน้าร้าน
           </a>
+          <Link
+            href="/account"
+            className="flex h-10 items-center gap-2.5 rounded-full px-3.5 text-sm text-slate-600 transition-colors hover:bg-slate-200/60 hover:text-slate-900"
+          >
+            <IconSettings size={16} className="text-slate-400" />
+            บัญชีของฉัน
+          </Link>
           <form action={signOut}>
             <button className="flex h-10 w-full items-center gap-2.5 rounded-full px-3.5 text-left text-sm text-slate-600 transition-colors hover:bg-slate-200/60 hover:text-slate-900">
               <IconLogout size={16} className="text-slate-400" />

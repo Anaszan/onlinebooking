@@ -4,7 +4,11 @@ import { Alert, Badge, Card, Checkbox, Field, Label, PageHeader, Textarea } from
 import { getTenantContext } from "@/lib/auth";
 import { env, shopUrl } from "@/lib/env";
 import { ROLE_LABELS, type Domain, type MemberRole } from "@/modules/booking/types";
-import { addDomain, removeDomain, updateSettings, verifyDomain } from "../actions";
+import { addDomain, removeDomain, removeShopImage, updateSettings, uploadShopImage, verifyDomain } from "../actions";
+import Link from "next/link";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ThemePicker } from "@/components/dashboard/theme-picker";
+import { ShopImageUploader } from "@/components/dashboard/shop-image-uploader";
 
 export const metadata = { title: "ตั้งค่า" };
 
@@ -19,6 +23,13 @@ export default async function SettingsPage(props: PageProps<"/dashboard/[slug]/s
   ]);
   const domains = (d ?? []) as Domain[];
   const members = (m ?? []) as { user_id: string; role: MemberRole }[];
+  // emails live in auth.users — fetched server-side for admins only
+  const emails = new Map<string, string>();
+  if (canAdmin) {
+    const admin = createAdminClient();
+    const found = await Promise.all(members.slice(0, 50).map((mm) => admin.auth.admin.getUserById(mm.user_id)));
+    found.forEach((r, i) => r.data.user?.email && emails.set(members[i].user_id, r.data.user.email));
+  }
   const rootHost = env.rootDomain.split(":")[0];
 
   return (
@@ -28,7 +39,7 @@ export default async function SettingsPage(props: PageProps<"/dashboard/[slug]/s
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <h2 className="mb-4 font-semibold">ข้อมูลร้าน & ธีม</h2>
+          <h2 className="mb-4 font-semibold">ชื่อร้าน ธีมสี & นโยบาย</h2>
           <ActionForm action={updateSettings.bind(null, slug)}>
             <fieldset disabled={!canAdmin} className="space-y-4">
               <Field label="ชื่อร้าน" name="name" defaultValue={tenant.name} required />
@@ -36,9 +47,8 @@ export default async function SettingsPage(props: PageProps<"/dashboard/[slug]/s
                 <Label htmlFor="description">คำอธิบายร้าน</Label>
                 <Textarea id="description" name="description" defaultValue={tenant.description ?? ""} />
               </div>
+              <ThemePicker primary={tenant.primary_color} accent={tenant.accent_color ?? "#fbbf24"} disabled={!canAdmin} />
               <div className="grid grid-cols-2 gap-3">
-                <Field label="สีหลัก" name="primary_color" type="color" defaultValue={tenant.primary_color} className="[&_input]:h-10 [&_input]:p-1" />
-                <Field label="โลโก้ (URL)" name="logo_url" type="url" defaultValue={tenant.logo_url ?? ""} />
                 <Field label="เบอร์โทร" name="contact_phone" defaultValue={tenant.contact_phone ?? ""} />
                 <Field label="LINE ID" name="contact_line" defaultValue={tenant.contact_line ?? ""} />
               </div>
@@ -57,6 +67,28 @@ export default async function SettingsPage(props: PageProps<"/dashboard/[slug]/s
         </Card>
 
         <div className="space-y-6">
+          <Card>
+            <h2 className="mb-4 font-semibold">โลโก้ & รูปหน้าปก</h2>
+            <div className="space-y-6">
+              <ShopImageUploader
+                label="โลโก้ร้าน"
+                kind="logo"
+                currentUrl={tenant.logo_url}
+                upload={uploadShopImage.bind(null, slug, "logo")}
+                remove={removeShopImage.bind(null, slug, "logo")}
+                disabled={!canAdmin}
+              />
+              <ShopImageUploader
+                label="รูปหน้าปก (แสดงบนหน้าร้าน)"
+                kind="cover"
+                currentUrl={tenant.cover_url}
+                upload={uploadShopImage.bind(null, slug, "cover")}
+                remove={removeShopImage.bind(null, slug, "cover")}
+                disabled={!canAdmin}
+              />
+            </div>
+          </Card>
+
           <Card>
             <h2 className="mb-2 font-semibold">ลิงก์หน้าร้าน</h2>
             <ul className="space-y-1 text-sm">
@@ -109,12 +141,20 @@ export default async function SettingsPage(props: PageProps<"/dashboard/[slug]/s
           </Card>
 
           <Card>
-            <h2 className="mb-3 font-semibold">สมาชิกทีม</h2>
-            <ul className="space-y-2 text-sm">
+            <h2 className="mb-1 font-semibold">สมาชิกทีม</h2>
+            <p className="mb-3 text-sm text-slate-500">
+              เพิ่มบัญชีเข้าสู่ระบบให้พนักงานได้ที่หน้า{" "}
+              <Link href={`/dashboard/${slug}/staff`} className="font-medium text-slate-900 underline">
+                พนักงาน
+              </Link>
+            </p>
+            <ul className="divide-y divide-slate-100 text-sm">
               {members.map((mm) => (
-                <li key={mm.user_id} className="flex items-center justify-between">
-                  <span className="font-mono text-xs text-slate-500">{mm.user_id.slice(0, 8)}…</span>
-                  <Badge>{ROLE_LABELS[mm.role]}</Badge>
+                <li key={mm.user_id} className="flex items-center justify-between gap-2 py-2">
+                  <span className="min-w-0 truncate">
+                    {emails.get(mm.user_id) ?? <span className="font-mono text-xs text-slate-500">{mm.user_id.slice(0, 8)}…</span>}
+                  </span>
+                  <Badge tone={mm.role === "owner" ? "blue" : "slate"}>{ROLE_LABELS[mm.role]}</Badge>
                 </li>
               ))}
             </ul>

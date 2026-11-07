@@ -31,6 +31,16 @@ const SUPABASE_STUB = `
     $$ select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon') $$;
   grant usage on schema public, auth to anon, authenticated, service_role;
   grant execute on all functions in schema auth to anon, authenticated, service_role;
+
+  -- minimal stub of Supabase Storage
+  create schema storage;
+  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid);
+  alter table storage.objects enable row level security;
+  create function storage.foldername(name text) returns text[] language sql immutable as
+    $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
+  grant usage on schema storage to anon, authenticated, service_role;
+  grant select on storage.objects to authenticated;
 `;
 
 async function as(role: "anon" | "authenticated" | "service_role", uid?: string) {
@@ -55,11 +65,26 @@ async function expectError(promise: Promise<unknown>, match: RegExp | string) {
 
 let tenantA: string, tenantB: string, branchA: string, staffA: string, staffA2: string, serviceA: string;
 
-async function createAppointment(start: string, opts: { staff?: string; key?: string; phone?: string } = {}) {
+async function createAppointment(
+  start: string,
+  opts: { staff?: string; key?: string; phone?: string; pet?: string; species?: string | null; photo?: string; service?: string } = {},
+) {
   await as("service_role");
   return one<{ appointment_id: string; reference_code: string; access_token: string; created: boolean }>(
-    `select * from public.booking_create_appointment($1,$2,$3,$4,$5,$6,$7,null,null,$8,'online')`,
-    [tenantA, branchA, serviceA, opts.staff ?? staffA, start, "ลูกค้า", opts.phone ?? "0811111111", opts.key ?? null],
+    `select * from public.booking_create_appointment($1,$2,$3,$4,$5,$6,$7,null,null,$8,'online',$9,$10,null,null,null,$11)`,
+    [
+      tenantA,
+      branchA,
+      opts.service ?? serviceA,
+      opts.staff ?? staffA,
+      start,
+      "ลูกค้า",
+      opts.phone ?? "0811111111",
+      opts.key ?? null,
+      opts.pet ?? "โมจิ",
+      opts.species === undefined ? "dog" : opts.species,
+      opts.photo ?? null,
+    ],
   );
 }
 
@@ -209,10 +234,84 @@ describe("booking engine guarantees", () => {
   });
 });
 
+describe("pet care", () => {
+  it("requires pet info for online bookings and stores the pet once per customer", async () => {
+    await expectError(createAppointment("2030-01-14T03:00:00Z", { species: null }), /PET_REQUIRED/);
+    const a = await createAppointment("2030-01-14T03:00:00Z", { phone: "0866666666", pet: "Mochi", photo: `${tenantA}/x.jpg` });
+    const b = await createAppointment("2030-01-14T05:00:00Z", { phone: "0866666666", pet: "mochi" });
+    await as("authenticated", USER_A);
+    const pets = await db.query<{ id: string; photo_path: string }>(
+      `select p.id, p.photo_path from public.booking_pets p join public.booking_customers c on c.id = p.customer_id where c.phone = '0866666666'`,
+    );
+    expect(pets.rows.length).toBe(1); // name match is case-insensitive
+    expect(pets.rows[0].photo_path).toBe(`${tenantA}/x.jpg`); // kept when the 2nd booking has no photo
+    const appts = await db.query<{ pet_id: string }>(`select pet_id from public.booking_appointments where id in ($1, $2)`, [
+      a!.appointment_id,
+      b!.appointment_id,
+    ]);
+    expect(appts.rows.every((r) => r.pet_id === pets.rows[0].id)).toBe(true);
+    // other tenants cannot see pets
+    await as("authenticated", USER_B);
+    expect((await db.query(`select * from public.booking_pets`)).rows.length).toBe(0);
+  });
+
+  it("rejects photos outside the tenant folder", async () => {
+    await expectError(createAppointment("2030-01-15T03:00:00Z", { photo: `${tenantB}/evil.jpg` }), /INVALID_PHOTO/);
+  });
+
+  it("enforces which species a service accepts", async () => {
+    await as("authenticated", USER_A);
+    const catOnly = (await one<{ id: string }>(
+      `insert into public.booking_services (tenant_id, name, duration_minutes, category, species)
+       values ($1, 'อาบน้ำแมว', 30, 'bath', '{cat}') returning id`,
+      [tenantA],
+    ))!.id;
+    await expectError(createAppointment("2030-01-16T03:00:00Z", { service: catOnly, species: "dog" }), /SPECIES_NOT_SUPPORTED/);
+    const ok = await createAppointment("2030-01-16T03:00:00Z", { service: catOnly, species: "cat", pet: "Tama" });
+    expect(ok!.created).toBe(true);
+    await as("authenticated", USER_A);
+    await expectError(
+      db.query(`update public.booking_services set species = '{dragon}' where id = $1`, [catOnly]),
+      /check constraint/,
+    );
+  });
+
+  it("reassigning a job checks the new staff's services and schedule", async () => {
+    const a = await createAppointment("2030-01-17T03:00:00Z");
+    const other = await createAppointment("2030-01-17T03:00:00Z", { staff: staffA2, phone: "0877777777" });
+    await as("authenticated", USER_A);
+    // staffA2 is busy at that time
+    await expectError(db.query(`select public.booking_reschedule_appointment($1, '2030-01-17T03:00:00Z', $2)`, [a!.appointment_id, staffA2]), /booking_allocations_no_overlap/);
+    await db.query(`select public.booking_set_appointment_status($1, 'cancelled')`, [other!.appointment_id]);
+    // restrict staffA2 to a different service
+    const svc = (await one<{ id: string }>(`select id from public.booking_services where tenant_id = $1 and id <> $2 limit 1`, [tenantA, serviceA]))!.id;
+    await db.query(`insert into public.booking_staff_services (tenant_id, staff_id, service_id) values ($1, $2, $3)`, [tenantA, staffA2, svc]);
+    await expectError(db.query(`select public.booking_reschedule_appointment($1, '2030-01-17T03:00:00Z', $2)`, [a!.appointment_id, staffA2]), /STAFF_CANNOT_PERFORM_SERVICE/);
+    await db.query(`delete from public.booking_staff_services where staff_id = $1`, [staffA2]);
+    await db.query(`select public.booking_reschedule_appointment($1, '2030-01-17T03:00:00Z', $2)`, [a!.appointment_id, staffA2]);
+    const row = await one<{ staff_id: string }>(`select staff_id from public.booking_appointments where id = $1`, [a!.appointment_id]);
+    expect(row!.staff_id).toBe(staffA2);
+  });
+
+  it("only members can read their tenant's pet photo objects", async () => {
+    await asOwner();
+    await db.query(`insert into storage.objects (bucket_id, name) values ('pet-photos', $1), ('pet-photos', $2)`, [
+      `${tenantA}/a.jpg`,
+      `${tenantB}/b.jpg`,
+    ]);
+    await as("authenticated", USER_A);
+    const r = await db.query<{ name: string }>(`select name from storage.objects where bucket_id = 'pet-photos'`);
+    expect(r.rows.map((x) => x.name)).toEqual([`${tenantA}/a.jpg`]);
+    await as("anon");
+    await expectError(db.query(`select name from storage.objects`), /permission denied/);
+  });
+});
+
 describe("plans, quotas and billing guards", () => {
   it("blocks creating more services than the plan allows (free = 5)", async () => {
     await as("authenticated", USER_A);
-    for (let i = 0; i < 4; i++) {
+    const existing = Number((await one<{ n: number }>(`select count(*)::int as n from public.booking_services where tenant_id = $1`, [tenantA]))!.n);
+    for (let i = 0; i < 5 - existing; i++) {
       await db.query(`insert into public.booking_services (tenant_id, name, duration_minutes) values ($1, $2, 30)`, [tenantA, `s${i}`]);
     }
     await expectError(

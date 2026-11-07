@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SERVICE_CATEGORIES, SPECIES } from "./types";
 
 const uuid = z.uuid();
 const dateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "รูปแบบวันที่ไม่ถูกต้อง");
@@ -36,6 +37,16 @@ export const createBookingBody = z.object({
     email: z.union([z.email("อีเมลไม่ถูกต้อง"), z.literal("")]).optional(),
     note: optionalText(500),
   }),
+  pet: z.object({
+    name: z.string().trim().min(1, "กรุณากรอกชื่อสัตว์เลี้ยง").max(60),
+    species: z.enum(SPECIES, "กรุณาเลือกประเภทสัตว์เลี้ยง"),
+    breed: optionalText(80),
+    weightKg: z
+      .union([z.coerce.number().positive("น้ำหนักต้องมากกว่า 0").max(199, "น้ำหนักไม่ถูกต้อง"), z.literal("")])
+      .optional()
+      .transform((v) => (v === "" || v === undefined ? undefined : v)),
+    notes: optionalText(1000),
+  }),
   idempotencyKey: z.string().min(8).max(80),
   website: z.string().max(0).optional(), // honeypot: must stay empty
 });
@@ -53,6 +64,7 @@ export const appointmentAction = z.discriminatedUnion("action", [
     time: timeKey,
     staffId: uuid.optional(),
   }),
+  z.object({ action: z.literal("assign"), staffId: uuid }),
   z.object({ action: z.literal("note"), internalNote: z.string().max(2000) }),
 ]);
 
@@ -75,8 +87,8 @@ export const tenantCreateForm = z.object({
 export const tenantSettingsForm = z.object({
   name: z.string().trim().min(1).max(120),
   description: optionalText(1000),
-  primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-  logo_url: z.union([z.url(), z.literal("")]).optional(),
+  primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "สีไม่ถูกต้อง"),
+  accent_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "สีไม่ถูกต้อง"),
   contact_phone: optionalText(30),
   contact_email: z.union([z.email(), z.literal("")]).optional(),
   contact_line: optionalText(60),
@@ -102,8 +114,15 @@ export const serviceForm = z.object({
   buffer_before_min: z.coerce.number().int().min(0).max(240),
   buffer_after_min: z.coerce.number().int().min(0).max(240),
   price: z.coerce.number().min(0).max(10_000_000),
+  category: z.enum(SERVICE_CATEGORIES),
+  species: z.array(z.enum(SPECIES)).max(SPECIES.length),
   is_online_bookable: checkbox,
   is_active: checkbox,
+});
+
+export const staffAccountForm = z.object({
+  email: z.email("อีเมลไม่ถูกต้อง").trim().toLowerCase(),
+  role: z.enum(["admin", "manager", "staff"]),
 });
 
 export const staffForm = z.object({

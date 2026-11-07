@@ -25,7 +25,14 @@ export default async function ShopLayout(props: LayoutProps<"/s/[slug]">) {
 
   return (
     <div
-      style={{ "--brand": tenant.primary_color, "--brand-fg": brandForeground(tenant.primary_color) } as CSSProperties}
+      style={
+        {
+          "--brand": tenant.primary_color,
+          "--brand-fg": brandForeground(tenant.primary_color),
+          "--accent": tenant.accent_color ?? "#fbbf24",
+          backgroundColor: "color-mix(in srgb, var(--accent) 12%, #fffaf5)",
+        } as CSSProperties
+      }
       className="paw-wallpaper flex min-h-screen flex-col"
     >
       <header className="border-b-2 border-white bg-white/70 backdrop-blur">
@@ -43,6 +50,12 @@ export default async function ShopLayout(props: LayoutProps<"/s/[slug]">) {
           </Link>
         </div>
       </header>
+      {tenant.cover_url && (
+        <div className="mx-auto w-full max-w-2xl px-4 pt-6 sm:px-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={tenant.cover_url} alt="" className="aspect-[3/1] w-full rounded-3xl object-cover shadow-md ring-2 ring-white" />
+        </div>
+      )}
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">{props.children}</main>
       <footer className="py-6 text-center text-xs text-slate-500">
         ขับเคลื่อนโดย{" "}

@@ -23,7 +23,7 @@ export default async function StaffPage(props: PageProps<"/dashboard/[slug]/staf
 
   return (
     <div className="space-y-6">
-      <PageHeader title="พนักงาน" description="กำหนดพนักงาน สาขา เวลาทำงาน และบริการที่แต่ละคนทำได้" />
+      <PageHeader title="พนักงาน" description="เพิ่มพนักงาน กำหนดเวลาทำงาน บริการที่แต่ละคนทำได้ และสร้างบัญชีเข้าระบบให้พนักงาน" />
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-2 lg:col-span-3">
           {staff.length === 0 ? (
@@ -36,7 +36,8 @@ export default async function StaffPage(props: PageProps<"/dashboard/[slug]/staf
                   <Card className="flex items-center justify-between gap-3 p-4 hover:border-brand">
                     <div className="min-w-0">
                       <p className="font-medium">
-                        {st.display_name} {!st.is_active && <Badge tone="red">ปิดใช้งาน</Badge>}
+                        {st.display_name} {!st.is_active && <Badge tone="red">ปิดใช้งาน</Badge>}{" "}
+                        {st.user_id && <Badge tone="green">มีบัญชีเข้าระบบ</Badge>}
                       </p>
                       <p className="text-sm text-slate-500">
                         {st.title ? `${st.title} · ` : ""}
@@ -58,7 +59,7 @@ export default async function StaffPage(props: PageProps<"/dashboard/[slug]/staf
             <h2 className="mb-4 font-semibold">เพิ่มพนักงาน</h2>
             <ActionForm action={saveStaff.bind(null, slug, null)} resetOnSuccess>
               <Field label="ชื่อที่แสดง" name="display_name" required />
-              <Field label="ตำแหน่ง" name="title" placeholder="เช่น ช่างตัดผมอาวุโส" />
+              <Field label="ตำแหน่ง" name="title" placeholder="เช่น ช่างกรูมมิ่ง, สัตวแพทย์" />
               <div>
                 <Label htmlFor="branch_id">สาขา</Label>
                 <Select id="branch_id" name="branch_id" required>

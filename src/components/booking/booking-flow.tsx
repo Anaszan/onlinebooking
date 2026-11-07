@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Input, Label, Textarea, cn, formatMoney } from "@/components/ui";
 import { IconArrowLeft, IconChevronRight, IconClock } from "@/components/icons";
+import { PetPhotoPicker } from "@/components/booking/pet-photo-picker";
+import { SPECIES, SPECIES_EMOJI, SPECIES_LABELS, type Species } from "@/modules/booking/types";
 
 interface Props {
   tenantSlug: string;
-  service: { id: string; name: string; duration: number; price: number };
+  service: { id: string; name: string; duration: number; price: number; species: Species[] };
   branches: { id: string; name: string; address: string | null; timezone: string }[];
   staff: { id: string; name: string; title: string | null; branchId: string }[];
   days: string[];
@@ -19,7 +21,15 @@ interface Slot {
   staffIds: string[];
 }
 
-type Step = "branch" | "staff" | "time" | "details";
+type Step = "branch" | "staff" | "time" | "pet" | "details";
+
+interface PetDraft {
+  name: string;
+  species: Species | "";
+  breed: string;
+  weightKg: string;
+  notes: string;
+}
 
 function newKey() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -40,6 +50,17 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
   const [submitting, setSubmitting] = useState(false);
   const [idemKey, setIdemKey] = useState(newKey);
   const [reloadToken, setReloadToken] = useState(0);
+  const speciesOptions = service.species.length > 0 ? service.species : SPECIES;
+  const [pet, setPet] = useState<PetDraft>({
+    name: "",
+    species: speciesOptions.length === 1 ? speciesOptions[0] : "",
+    breed: "",
+    weightKg: "",
+    notes: "",
+  });
+  const [petPhoto, setPetPhoto] = useState<File | null>(null);
+  const [petPreview, setPetPreview] = useState<string | null>(null);
+  const updatePet = (patch: Partial<PetDraft>) => setPet((p) => ({ ...p, ...patch }));
 
   const branch = branches.find((b) => b.id === branchId) ?? null;
   const branchStaff = useMemo(() => staff.filter((s) => s.branchId === branchId), [staff, branchId]);
@@ -80,10 +101,10 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/public/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const body = new FormData();
+      body.set(
+        "payload",
+        JSON.stringify({
           tenant: tenantSlug,
           serviceId: service.id,
           branchId,
@@ -95,10 +116,20 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
             email: String(form.get("email") ?? ""),
             note: String(form.get("note") ?? ""),
           },
+          pet: {
+            name: pet.name,
+            species: pet.species,
+            breed: pet.breed,
+            weightKg: pet.weightKg,
+            notes: pet.notes,
+          },
           idempotencyKey: idemKey,
           website: String(form.get("website") ?? ""),
         }),
-      });
+      );
+      if (petPhoto) body.set("petPhoto", petPhoto);
+      // multipart: the browser sets the boundary header itself
+      const res = await fetch("/api/public/bookings", { method: "POST", body });
       const json = await res.json();
       if (!res.ok) {
         if (res.status === 409) {
@@ -121,6 +152,7 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
     ...(branches.length > 1 ? [{ key: "branch" as Step, label: "สาขา" }] : []),
     { key: "staff", label: "พนักงาน" },
     { key: "time", label: "วันเวลา" },
+    { key: "pet", label: "สัตว์เลี้ยง" },
     { key: "details", label: "ข้อมูลติดต่อ" },
   ];
   const stepIndex = steps.findIndex((s) => s.key === step);
@@ -275,7 +307,7 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
                   onClick={() => {
                     setSlot(s);
                     setIdemKey(newKey());
-                    setStep("details");
+                    setStep("pet");
                   }}
                   className={cn(
                     "tnum h-12 rounded-full border-2 text-[15px] font-medium transition-colors",
@@ -296,14 +328,135 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
         </div>
       )}
 
+      {step === "pet" && slot && (
+        <form
+          className="space-y-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!pet.species) {
+              setError("กรุณาเลือกประเภทสัตว์เลี้ยง");
+              return;
+            }
+            setError(null);
+            setStep("details");
+          }}
+        >
+          <div>
+            <h2 className="text-lg text-slate-900">ข้อมูลน้อง ๆ</h2>
+            <p className="text-sm text-slate-500">ช่วยให้ร้านเตรียมการดูแลได้เหมาะสม</p>
+          </div>
+
+          <fieldset>
+            <legend className="sr-only">ประเภทสัตว์เลี้ยง</legend>
+            <Label>ประเภทสัตว์เลี้ยง *</Label>
+            <div className="flex flex-wrap gap-2">
+              {speciesOptions.map((sp) => (
+                <label
+                  key={sp}
+                  className={cn(
+                    "inline-flex h-11 cursor-pointer items-center gap-2 rounded-full border-2 px-4 font-display text-sm transition-colors has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/30",
+                    pet.species === sp
+                      ? "btn-candy border-transparent text-[var(--brand-fg)]"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-400",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="species"
+                    value={sp}
+                    checked={pet.species === sp}
+                    onChange={() => updatePet({ species: sp })}
+                    className="sr-only"
+                  />
+                  <span aria-hidden>{SPECIES_EMOJI[sp]}</span>
+                  {SPECIES_LABELS[sp]}
+                </label>
+              ))}
+            </div>
+            {service.species.length > 0 && (
+              <p className="mt-2 text-xs text-slate-500">บริการนี้รับเฉพาะ {service.species.map((s) => SPECIES_LABELS[s]).join(", ")}</p>
+            )}
+          </fieldset>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="pet_name">ชื่อสัตว์เลี้ยง *</Label>
+              <Input id="pet_name" required maxLength={60} value={pet.name} onChange={(e) => updatePet({ name: e.target.value })} placeholder="เช่น โมจิ" />
+            </div>
+            <div>
+              <Label htmlFor="pet_breed">สายพันธุ์</Label>
+              <Input id="pet_breed" maxLength={80} value={pet.breed} onChange={(e) => updatePet({ breed: e.target.value })} placeholder="เช่น ชิสุ, เปอร์เซีย" />
+            </div>
+            <div>
+              <Label htmlFor="pet_weight" hint="(กก.)">
+                น้ำหนัก
+              </Label>
+              <Input
+                id="pet_weight"
+                type="number"
+                inputMode="decimal"
+                min={0.1}
+                max={199}
+                step={0.1}
+                value={pet.weightKg}
+                onChange={(e) => updatePet({ weightKg: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="pet_notes" hint="(เช่น แพ้ยา, กลัวเสียงไดร์, ดุเมื่อถูกจับเท้า)">
+              สิ่งที่ร้านควรรู้
+            </Label>
+            <Textarea id="pet_notes" maxLength={1000} value={pet.notes} onChange={(e) => updatePet({ notes: e.target.value })} />
+          </div>
+
+          <PetPhotoPicker
+            file={petPhoto}
+            preview={petPreview}
+            onChange={(file, preview) => {
+              if (petPreview) URL.revokeObjectURL(petPreview);
+              setPetPhoto(file);
+              setPetPreview(preview);
+            }}
+            onError={setError}
+          />
+
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={() => setStep("time")}>
+              <IconArrowLeft />
+              ย้อนกลับ
+            </Button>
+            <Button type="submit" className="flex-1">
+              ถัดไป
+            </Button>
+          </div>
+        </form>
+      )}
+
       {step === "details" && slot && (
         <form action={submit} className="space-y-4">
-          <div className="rounded-3xl border-2 border-white bg-white p-5 text-sm shadow-md">
-            <p className="font-medium text-slate-900">{fullFmt.format(new Date(slot.start))}</p>
-            <p className="text-slate-600">
-              {branch?.name} · {staffId === "any" ? "ไม่ระบุพนักงาน" : branchStaff.find((s) => s.id === staffId)?.name}
-            </p>
+          <div className="flex items-center gap-4 rounded-3xl border-2 border-white bg-white p-5 text-sm shadow-md">
+            {petPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={petPreview} alt={`รูปของ ${pet.name}`} className="h-16 w-16 shrink-0 rounded-2xl object-cover" />
+            ) : (
+              <span aria-hidden className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-3xl">
+                {pet.species ? SPECIES_EMOJI[pet.species] : "🐾"}
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="font-medium text-slate-900">{fullFmt.format(new Date(slot.start))}</p>
+              <p className="text-slate-600">
+                {branch?.name} · {staffId === "any" ? "ไม่ระบุพนักงาน" : branchStaff.find((s) => s.id === staffId)?.name}
+              </p>
+              <p className="truncate text-slate-600">
+                {pet.name} · {pet.species ? SPECIES_LABELS[pet.species] : ""}
+                {pet.breed && ` · ${pet.breed}`}
+              </p>
+            </div>
           </div>
+          <h2 className="pt-1 text-lg text-slate-900">ข้อมูลเจ้าของ</h2>
           <div>
             <Label htmlFor="name">ชื่อ-นามสกุล *</Label>
             <Input id="name" name="name" required maxLength={120} autoComplete="name" />
@@ -330,7 +483,7 @@ export function BookingFlow({ tenantSlug, service, branches, staff, days }: Prop
             </label>
           </div>
           <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={() => setStep("time")} disabled={submitting}>
+            <Button type="button" variant="secondary" onClick={() => setStep("pet")} disabled={submitting}>
               <IconArrowLeft />
               ย้อนกลับ
             </Button>

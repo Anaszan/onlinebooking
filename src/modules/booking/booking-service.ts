@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { AppError, fromDbError } from "@/lib/errors";
 import { addDays, dayRangeUtc, toDateKey } from "@/lib/time";
 import { computeAvailability, parseRange, type BusyInterval, type Slot } from "./availability";
-import type { Branch, Service, Staff, Tenant, WorkingHour } from "./types";
+import type { Branch, Service, Species, Staff, Tenant, WorkingHour } from "./types";
 
 /**
  * BookingService — server-only. Uses the privileged client because
@@ -171,6 +171,9 @@ export interface CreateBookingInput {
   staffId?: string;
   start: string; // ISO
   customer: { name: string; phone: string; email?: string; note?: string };
+  pet: { name: string; species: Species; breed?: string; weightKg?: number; notes?: string };
+  /** already validated with readImage() */
+  petPhoto?: { bytes: Uint8Array; mime: string; ext: string };
   idempotencyKey: string;
 }
 
@@ -203,6 +206,29 @@ export async function createPublicBooking(input: CreateBookingInput): Promise<Cr
   const candidates = input.staffId ? slot.staffIds.filter((id) => id === input.staffId) : shuffle(slot.staffIds);
   if (candidates.length === 0) throw new AppError("SLOT_TAKEN", "พนักงานไม่ว่างในเวลานี้", 409);
 
+  const accepted = ctx0.service.species ?? [];
+  if (accepted.length > 0 && !accepted.includes(input.pet.species)) {
+    throw new AppError("SPECIES_NOT_SUPPORTED", "บริการนี้ไม่รองรับสัตว์เลี้ยงประเภทนี้", 422);
+  }
+
+  // Upload the pet photo only after the slot is known to be free.
+  // Path is always <tenant_id>/<uuid>.<ext> — derived server-side, never from the client.
+  let photoPath: string | null = null;
+  if (input.petPhoto) {
+    photoPath = `${ctx0.tenant.id}/${crypto.randomUUID()}.${input.petPhoto.ext}`;
+    const up = await db.storage.from(PET_PHOTO_BUCKET).upload(photoPath, input.petPhoto.bytes, {
+      contentType: input.petPhoto.mime,
+      upsert: false,
+    });
+    if (up.error) {
+      console.error("[pet-photo] upload failed", up.error.message);
+      throw new AppError("UPLOAD_FAILED", "อัปโหลดรูปสัตว์เลี้ยงไม่สำเร็จ กรุณาลองใหม่", 502);
+    }
+  }
+  const discardPhoto = async () => {
+    if (photoPath) await db.storage.from(PET_PHOTO_BUCKET).remove([photoPath]);
+  };
+
   let lastErr: unknown;
   for (const [i, staffId] of candidates.entries()) {
     const { data, error } = await db
@@ -219,6 +245,12 @@ export async function createPublicBooking(input: CreateBookingInput): Promise<Cr
         // per-attempt key so a retry with another staff isn't treated as a replay
         p_idempotency_key: i === 0 ? input.idempotencyKey : `${input.idempotencyKey}:${i}`,
         p_source: "online",
+        p_pet_name: input.pet.name,
+        p_pet_species: input.pet.species,
+        p_pet_breed: input.pet.breed ?? null,
+        p_pet_weight_kg: input.pet.weightKg ?? null,
+        p_pet_notes: input.pet.notes ?? null,
+        p_pet_photo_path: photoPath,
       })
       .single<{
         appointment_id: string;
@@ -230,6 +262,7 @@ export async function createPublicBooking(input: CreateBookingInput): Promise<Cr
         created: boolean;
       }>();
     if (!error && data) {
+      if (!data.created) await discardPhoto(); // idempotent replay: keep the original
       return {
         appointmentId: data.appointment_id,
         referenceCode: data.reference_code,
@@ -243,6 +276,7 @@ export async function createPublicBooking(input: CreateBookingInput): Promise<Cr
     lastErr = error;
     if (error?.code !== "23P01") break; // only retry on overlap
   }
+  await discardPhoto();
   throw fromDbError(lastErr as { code?: string; message?: string });
 }
 
@@ -266,7 +300,8 @@ export async function getBookingByToken(reference: string, token: string) {
        service:booking_services(name, duration_minutes),
        branch:booking_branches(name, address, timezone),
        staff:booking_staff(display_name),
-       customer:booking_customers(full_name, phone)`,
+       customer:booking_customers(full_name, phone),
+       pet:booking_pets(name, species, breed, photo_path)`,
     )
     .eq("reference_code", reference)
     .maybeSingle();
@@ -274,7 +309,9 @@ export async function getBookingByToken(reference: string, token: string) {
   if (!data || !safeEqual(String(data.access_token), token)) return null;
   const { access_token: _omit, ...rest } = data;
   void _omit;
-  return rest as unknown as PublicBooking;
+  const booking = rest as unknown as PublicBooking;
+  booking.pet_photo_url = booking.pet?.photo_path ? await signPetPhoto(booking.pet.photo_path) : null;
+  return booking;
 }
 
 export interface PublicBooking {
@@ -298,6 +335,16 @@ export interface PublicBooking {
   branch: { name: string; address: string | null; timezone: string };
   staff: { display_name: string };
   customer: { full_name: string; phone: string };
+  pet: { name: string; species: Species; breed: string | null; photo_path: string | null } | null;
+  pet_photo_url: string | null;
+}
+
+export const PET_PHOTO_BUCKET = "pet-photos";
+
+/** Short-lived signed URL for a private pet photo (server-side). */
+export async function signPetPhoto(path: string, expiresIn = 3600) {
+  const { data } = await createAdminClient().storage.from(PET_PHOTO_BUCKET).createSignedUrl(path, expiresIn);
+  return data?.signedUrl ?? null;
 }
 
 /** Mirrors the DB rule in booking_cancel_by_customer (the DB remains authoritative). */

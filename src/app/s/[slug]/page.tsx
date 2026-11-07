@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { EmptyState, formatMoney } from "@/components/ui";
 import { IconChat, IconChevronRight, IconClock, IconMail, IconPhone, IconPin } from "@/components/icons";
 import { getStorefront } from "@/modules/booking/public-catalog";
+import { CATEGORY_LABELS, SERVICE_CATEGORIES, SPECIES_EMOJI, SPECIES_LABELS } from "@/modules/booking/types";
 
 export default async function ShopPage(props: PageProps<"/s/[slug]">) {
   const { slug } = await props.params;
@@ -21,8 +22,12 @@ export default async function ShopPage(props: PageProps<"/s/[slug]">) {
         {services.length === 0 ? (
           <EmptyState title="ยังไม่มีบริการที่เปิดให้จอง" description="กรุณาติดต่อร้านโดยตรง" />
         ) : (
+          <div className="space-y-6">
+          {SERVICE_CATEGORIES.filter((c) => services.some((s) => (s.category ?? "other") === c)).map((cat) => (
+          <div key={cat}>
+          <h3 className="mb-2 px-1 text-sm font-medium text-slate-500">{CATEGORY_LABELS[cat]}</h3>
           <ul className="divide-y divide-slate-100 overflow-hidden rounded-3xl border-2 border-white bg-white shadow-md">
-            {services.map((s) => (
+            {services.filter((s) => (s.category ?? "other") === cat).map((s) => (
               <li key={s.id}>
                 <Link
                   href={`/s/${tenant.slug}/book/${s.id}`}
@@ -31,9 +36,16 @@ export default async function ShopPage(props: PageProps<"/s/[slug]">) {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-slate-900">{s.name}</p>
                     {s.description && <p className="mt-0.5 line-clamp-2 text-sm text-slate-500">{s.description}</p>}
-                    <p className="mt-1 inline-flex items-center gap-1 text-[13px] text-slate-500">
-                      <IconClock size={13} />
-                      <span className="tnum">{s.duration_minutes}</span> นาที
+                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-slate-500">
+                      <span className="inline-flex items-center gap-1">
+                        <IconClock size={13} />
+                        <span className="tnum">{s.duration_minutes}</span> นาที
+                      </span>
+                      {s.species?.length > 0 && (
+                        <span>
+                          {s.species.map((sp) => `${SPECIES_EMOJI[sp]} ${SPECIES_LABELS[sp]}`).join("  ")}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <p className="tnum shrink-0 font-semibold text-slate-900">
@@ -47,6 +59,9 @@ export default async function ShopPage(props: PageProps<"/s/[slug]">) {
               </li>
             ))}
           </ul>
+          </div>
+          ))}
+          </div>
         )}
       </section>
 

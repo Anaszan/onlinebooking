@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   // dynamically. Cache Components can be adopted later for the storefront.
   cacheComponents: false,
   poweredByHeader: false,
+  experimental: {
+    // shop logo / cover uploads go through Server Actions (images are capped at 3 MB in code)
+    serverActions: { bodySizeLimit: "4mb" },
+  },
   turbopack: {
     rules: {
       "*.css": {

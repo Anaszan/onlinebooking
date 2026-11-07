@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
-import { Badge, Card, Checkbox, EmptyState, Field, Label, PageHeader, Textarea, formatMoney } from "@/components/ui";
+import { ActionButton } from "@/components/action-button";
+import { Badge, Card, Checkbox, EmptyState, Field, Label, PageHeader, Select, Textarea, formatMoney } from "@/components/ui";
 import { getTenantContext } from "@/lib/auth";
-import type { Service } from "@/modules/booking/types";
-import { saveService } from "../actions";
+import { CATEGORY_LABELS, SERVICE_CATEGORIES, SPECIES, SPECIES_EMOJI, SPECIES_LABELS, type Service } from "@/modules/booking/types";
+import { deleteService, saveService } from "../actions";
 
 export const metadata = { title: "บริการ" };
 
@@ -17,7 +18,7 @@ export default async function ServicesPage(props: PageProps<"/dashboard/[slug]/s
 
   return (
     <div className="space-y-6">
-      <PageHeader title="บริการ" description="กำหนดชื่อ ราคา ระยะเวลา และเวลาเผื่อ (buffer) ของแต่ละบริการ" />
+      <PageHeader title="บริการ" description="เพิ่ม แก้ไข หรือลบบริการดูแลสัตว์เลี้ยง พร้อมกำหนดราคา ระยะเวลา และประเภทสัตว์ที่รับ" />
 
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-2 lg:col-span-3">
@@ -32,14 +33,25 @@ export default async function ServicesPage(props: PageProps<"/dashboard/[slug]/s
                     {!s.is_active && <Badge tone="red">ปิดใช้งาน</Badge>} {s.is_active && !s.is_online_bookable && <Badge tone="amber">ไม่เปิดจองออนไลน์</Badge>}
                   </p>
                   <p className="text-sm text-slate-500">
-                    {s.duration_minutes} นาที · {formatMoney(Number(s.price))}
+                    {CATEGORY_LABELS[s.category ?? "other"]} · {s.duration_minutes} นาที · {formatMoney(Number(s.price))}
                     {(s.buffer_before_min > 0 || s.buffer_after_min > 0) && ` · buffer ${s.buffer_before_min}/${s.buffer_after_min} นาที`}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    รับ: {s.species?.length ? s.species.map((sp) => `${SPECIES_EMOJI[sp]} ${SPECIES_LABELS[sp]}`).join("  ") : "ทุกประเภท"}
                   </p>
                 </div>
                 {canManage && (
-                  <Link href={`?edit=${s.id}`} className="shrink-0 text-sm font-medium text-brand">
-                    แก้ไข
-                  </Link>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <Link href={`?edit=${s.id}`} className="text-sm font-medium text-brand">
+                      แก้ไข
+                    </Link>
+                    <ActionButton
+                      action={deleteService.bind(null, slug, s.id)}
+                      label="ลบ"
+                      variant="ghost"
+                      confirm={`ลบบริการ "${s.name}"? (ถ้ามีประวัติการจอง ระบบจะปิดใช้งานแทน)`}
+                    />
+                  </div>
                 )}
               </Card>
             ))
@@ -57,7 +69,32 @@ export default async function ServicesPage(props: PageProps<"/dashboard/[slug]/s
               )}
             </div>
             <ActionForm key={editing?.id ?? "new"} action={saveService.bind(null, slug, editing?.id ?? null)} resetOnSuccess={!editing}>
-              <Field label="ชื่อบริการ" name="name" defaultValue={editing?.name} required />
+              <Field label="ชื่อบริการ" name="name" defaultValue={editing?.name} required placeholder="เช่น อาบน้ำ + ตัดขน (สุนัขเล็ก)" />
+              <div>
+                <Label htmlFor="category">หมวดบริการ</Label>
+                <Select id="category" name="category" defaultValue={editing?.category ?? "grooming"}>
+                  {SERVICE_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {CATEGORY_LABELS[c]}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <fieldset>
+                <legend className="mb-2 text-sm font-medium text-slate-700">รับสัตว์เลี้ยงประเภท</legend>
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {SPECIES.map((sp) => (
+                    <Checkbox
+                      key={sp}
+                      name="species"
+                      value={sp}
+                      label={`${SPECIES_EMOJI[sp]} ${SPECIES_LABELS[sp]}`}
+                      defaultChecked={editing?.species?.includes(sp) ?? false}
+                    />
+                  ))}
+                </div>
+                <p className="mt-1.5 text-xs text-slate-500">ไม่เลือกเลย = รับทุกประเภท</p>
+              </fieldset>
               <div>
                 <Label htmlFor="description">รายละเอียด</Label>
                 <Textarea id="description" name="description" defaultValue={editing?.description ?? ""} />

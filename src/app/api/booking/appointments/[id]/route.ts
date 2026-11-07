@@ -35,6 +35,20 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/bookin
         p_new_staff: body.staffId ?? null,
       });
       if (error) throw fromDbError(error);
+    } else if (body.action === "assign") {
+      // same time, different staff — overlap and service capability are checked in the DB
+      const { data: appt } = await supabase
+        .from("booking_appointments")
+        .select("id, starts_at")
+        .eq("id", id)
+        .maybeSingle<{ id: string; starts_at: string }>();
+      if (!appt) throw new AppError("NOT_FOUND", "ไม่พบนัดหมาย", 404);
+      const { error } = await supabase.rpc("booking_reschedule_appointment", {
+        p_appointment: id,
+        p_new_start: appt.starts_at,
+        p_new_staff: body.staffId,
+      });
+      if (error) throw fromDbError(error);
     } else {
       const { error } = await supabase.rpc("booking_set_internal_note", { p_appointment: id, p_note: body.internalNote });
       if (error) throw fromDbError(error);

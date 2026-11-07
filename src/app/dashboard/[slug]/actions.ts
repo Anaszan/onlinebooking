@@ -9,12 +9,15 @@ import {
   branchForm,
   domainForm,
   serviceForm,
+  staffAccountForm,
   staffForm,
   tenantSettingsForm,
   timeOffForm,
   workingHoursForm,
 } from "@/modules/booking/schemas";
 import { zonedToUtc } from "@/lib/time";
+import { ImageValidationError, MAX_SHOP_IMAGE_BYTES, readImage } from "@/lib/images";
+import { SPECIES } from "@/modules/booking/types";
 import { z } from "zod";
 
 /*
@@ -42,7 +45,6 @@ export async function updateSettings(slug: string, _p: Prev, form: FormData): Pr
       .update({
         ...v,
         description: v.description ?? null,
-        logo_url: v.logo_url || null,
         contact_email: v.contact_email || null,
         contact_phone: v.contact_phone ?? null,
         contact_line: v.contact_line ?? null,
@@ -75,7 +77,7 @@ export async function saveBranch(slug: string, id: string | null, _p: Prev, form
 export async function saveService(slug: string, id: string | null, _p: Prev, form: FormData): Promise<ActionResult> {
   try {
     const { supabase, tenantId } = await assertTenantRole(slug);
-    const v = serviceForm.parse(fd(form));
+    const v = serviceForm.parse({ ...fd(form), species: form.getAll("species") });
     const row = { ...v, description: v.description ?? null };
     const { error } = id
       ? await supabase.from("booking_services").update(row).eq("tenant_id", tenantId).eq("id", id)
@@ -85,6 +87,83 @@ export async function saveService(slug: string, id: string | null, _p: Prev, for
   } catch (e) {
     return actionError(e);
   }
+}
+
+/** Delete a service; if it has booking history, deactivate it instead. */
+export async function deleteService(slug: string, id: string): Promise<ActionResult> {
+  try {
+    const { supabase, tenantId } = await assertTenantRole(slug);
+    const { error } = await supabase.from("booking_services").delete().eq("tenant_id", tenantId).eq("id", id);
+    if (error?.code === "23503") {
+      const off = await supabase
+        .from("booking_services")
+        .update({ is_active: false, is_online_bookable: false })
+        .eq("tenant_id", tenantId)
+        .eq("id", id);
+      if (off.error) throw fromDbError(off.error);
+      revalidatePath(`/dashboard/${slug}`, "layout");
+      return { ok: true, message: "บริการนี้มีประวัติการจอง จึงปิดใช้งานแทนการลบ" };
+    }
+    if (error) throw fromDbError(error);
+    revalidatePath(`/dashboard/${slug}`, "layout");
+    return { ok: true, message: "ลบบริการแล้ว" };
+  } catch (e) {
+    return actionError(e);
+  }
+}
+
+// ---------------------------------------------------------------- shop images
+const SHOP_ASSETS_BUCKET = "shop-assets";
+const IMAGE_COLUMNS = { logo: "logo_url", cover: "cover_url" } as const;
+
+export async function uploadShopImage(slug: string, kind: "logo" | "cover", _p: Prev, form: FormData): Promise<ActionResult> {
+  try {
+    const { tenantId } = await assertTenantRole(slug, ADMIN_ROLES);
+    const file = form.get("file");
+    if (!(file instanceof File) || file.size === 0) throw new AppError("VALIDATION", "กรุณาเลือกรูป", 422);
+    let img;
+    try {
+      img = await readImage(file, MAX_SHOP_IMAGE_BYTES);
+    } catch (e) {
+      if (e instanceof ImageValidationError) throw new AppError("VALIDATION", e.message, 422);
+      throw e;
+    }
+    const admin = createAdminClient();
+    const path = `${tenantId}/${kind}-${Date.now()}.${img.ext}`;
+    const up = await admin.storage.from(SHOP_ASSETS_BUCKET).upload(path, img.bytes, { contentType: img.mime, cacheControl: "31536000" });
+    if (up.error) throw new AppError("UPLOAD_FAILED", "อัปโหลดรูปไม่สำเร็จ", 502);
+    const url = admin.storage.from(SHOP_ASSETS_BUCKET).getPublicUrl(path).data.publicUrl;
+
+    const { data: before } = await admin.from("booking_tenants").select(IMAGE_COLUMNS[kind]).eq("id", tenantId).single();
+    const { error } = await admin.from("booking_tenants").update({ [IMAGE_COLUMNS[kind]]: url }).eq("id", tenantId);
+    if (error) throw fromDbError(error);
+    await removeOldAsset(admin, (before as Record<string, string | null> | null)?.[IMAGE_COLUMNS[kind]] ?? null, tenantId);
+    return done(slug, kind === "logo" ? "อัปเดตโลโก้แล้ว" : "อัปเดตรูปหน้าปกแล้ว");
+  } catch (e) {
+    return actionError(e);
+  }
+}
+
+export async function removeShopImage(slug: string, kind: "logo" | "cover"): Promise<ActionResult> {
+  try {
+    const { tenantId } = await assertTenantRole(slug, ADMIN_ROLES);
+    const admin = createAdminClient();
+    const { data: before } = await admin.from("booking_tenants").select(IMAGE_COLUMNS[kind]).eq("id", tenantId).single();
+    const { error } = await admin.from("booking_tenants").update({ [IMAGE_COLUMNS[kind]]: null }).eq("id", tenantId);
+    if (error) throw fromDbError(error);
+    await removeOldAsset(admin, (before as Record<string, string | null> | null)?.[IMAGE_COLUMNS[kind]] ?? null, tenantId);
+    return done(slug, "ลบรูปแล้ว");
+  } catch (e) {
+    return actionError(e);
+  }
+}
+
+async function removeOldAsset(admin: ReturnType<typeof createAdminClient>, url: string | null, tenantId: string) {
+  const marker = `/object/public/${SHOP_ASSETS_BUCKET}/`;
+  const i = url?.indexOf(marker) ?? -1;
+  if (!url || i < 0) return;
+  const path = decodeURIComponent(url.slice(i + marker.length));
+  if (path.startsWith(`${tenantId}/`)) await admin.storage.from(SHOP_ASSETS_BUCKET).remove([path]);
 }
 
 // ---------------------------------------------------------------- staff
@@ -170,6 +249,102 @@ export async function saveStaffServices(slug: string, staffId: string, _p: Prev,
   }
 }
 
+// ---------------------------------------------------------------- staff login accounts
+function tempPassword() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+}
+
+/**
+ * Give a staff record a login. If the email has no account yet, one is
+ * created with a one-time password that the admin hands over (the staff
+ * member changes it at /account). The account becomes a tenant member with
+ * the chosen role and is linked to this staff record ("my jobs").
+ */
+export async function grantStaffAccess(slug: string, staffId: string, _p: Prev, form: FormData): Promise<ActionResult> {
+  try {
+    const { supabase, tenantId, user } = await assertTenantRole(slug, ADMIN_ROLES);
+    const v = staffAccountForm.parse(fd(form));
+    const { data: staff } = await supabase
+      .from("booking_staff")
+      .select("id, user_id")
+      .eq("tenant_id", tenantId)
+      .eq("id", staffId)
+      .maybeSingle<{ id: string; user_id: string | null }>();
+    if (!staff) throw new AppError("NOT_FOUND", "ไม่พบพนักงาน", 404);
+
+    const admin = createAdminClient();
+    const { data: existingId, error: findErr } = await admin.rpc("booking_find_user_by_email", { p_email: v.email });
+    if (findErr) throw fromDbError(findErr);
+
+    let userId = existingId as string | null;
+    let password: string | null = null;
+    if (!userId) {
+      password = tempPassword();
+      const created = await admin.auth.admin.createUser({ email: v.email, password, email_confirm: true });
+      if (created.error || !created.data.user) throw new AppError("AUTH_ERROR", created.error?.message ?? "สร้างบัญชีไม่สำเร็จ", 400);
+      userId = created.data.user.id;
+    }
+    if (userId === user.id) throw new AppError("VALIDATION", "ไม่สามารถผูกบัญชีของตัวเองได้", 422);
+
+    const { data: member } = await admin
+      .from("booking_members")
+      .select("role")
+      .eq("tenant_id", tenantId)
+      .eq("user_id", userId)
+      .maybeSingle<{ role: string }>();
+    if (member?.role === "owner") throw new AppError("FORBIDDEN", "ไม่สามารถเปลี่ยนสิทธิ์เจ้าของร้านได้", 403);
+
+    const m = await admin
+      .from("booking_members")
+      .upsert({ tenant_id: tenantId, user_id: userId, role: v.role }, { onConflict: "tenant_id,user_id" });
+    if (m.error) throw fromDbError(m.error);
+
+    // one login ↔ one staff record per shop
+    await admin.from("booking_staff").update({ user_id: null }).eq("tenant_id", tenantId).eq("user_id", userId).neq("id", staffId);
+    const link = await admin.from("booking_staff").update({ user_id: userId }).eq("tenant_id", tenantId).eq("id", staffId);
+    if (link.error) throw fromDbError(link.error);
+
+    revalidatePath(`/dashboard/${slug}`, "layout");
+    return {
+      ok: true,
+      message: password
+        ? `สร้างบัญชีแล้ว — อีเมล: ${v.email} รหัสผ่านชั่วคราว: ${password} (แจ้งพนักงานและให้เปลี่ยนรหัสหลังเข้าสู่ระบบ ระบบจะไม่แสดงรหัสนี้อีก)`
+        : `ผูกบัญชี ${v.email} เข้ากับพนักงานคนนี้แล้ว`,
+    };
+  } catch (e) {
+    return actionError(e);
+  }
+}
+
+export async function revokeStaffAccess(slug: string, staffId: string): Promise<ActionResult> {
+  try {
+    const { tenantId } = await assertTenantRole(slug, ADMIN_ROLES);
+    const admin = createAdminClient();
+    const { data: staff } = await admin
+      .from("booking_staff")
+      .select("user_id")
+      .eq("tenant_id", tenantId)
+      .eq("id", staffId)
+      .maybeSingle<{ user_id: string | null }>();
+    if (!staff?.user_id) return { ok: true, message: "พนักงานคนนี้ไม่มีบัญชีอยู่แล้ว" };
+    const { data: member } = await admin
+      .from("booking_members")
+      .select("role")
+      .eq("tenant_id", tenantId)
+      .eq("user_id", staff.user_id)
+      .maybeSingle<{ role: string }>();
+    if (member?.role === "owner") throw new AppError("FORBIDDEN", "ไม่สามารถถอนสิทธิ์เจ้าของร้านได้", 403);
+    await admin.from("booking_members").delete().eq("tenant_id", tenantId).eq("user_id", staff.user_id);
+    await admin.from("booking_staff").update({ user_id: null }).eq("tenant_id", tenantId).eq("id", staffId);
+    revalidatePath(`/dashboard/${slug}`, "layout");
+    return { ok: true, message: "ถอนสิทธิ์เข้าระบบแล้ว" };
+  } catch (e) {
+    return actionError(e);
+  }
+}
+
 // ---------------------------------------------------------------- time off
 export async function addTimeOff(slug: string, _p: Prev, form: FormData): Promise<ActionResult> {
   try {
@@ -245,6 +420,8 @@ export async function createManualBooking(slug: string, _p: Prev, form: FormData
         name: z.string().trim().min(1, "กรุณากรอกชื่อลูกค้า").max(120),
         phone: z.string().trim().regex(/^\+?[\d\s-]{9,20}$/, "เบอร์โทรไม่ถูกต้อง"),
         note: z.string().max(500).optional(),
+        pet_name: z.string().trim().max(60).optional(),
+        pet_species: z.enum(SPECIES).optional(),
       })
       .parse(fd(form));
 
@@ -270,6 +447,8 @@ export async function createManualBooking(slug: string, _p: Prev, form: FormData
       p_customer_note: v.note ?? null,
       p_idempotency_key: null,
       p_source: "dashboard",
+      p_pet_name: v.pet_name || null,
+      p_pet_species: v.pet_name ? (v.pet_species ?? "other") : null,
     });
     if (error) throw fromDbError(error);
     return done(slug, "เพิ่มนัดหมายแล้ว");

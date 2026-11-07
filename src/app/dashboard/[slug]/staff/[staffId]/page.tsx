@@ -4,15 +4,17 @@ import { ActionForm } from "@/components/action-form";
 import { Card, Checkbox, Field, Input, Label, PageHeader, Select } from "@/components/ui";
 import { getTenantContext } from "@/lib/auth";
 import { WEEKDAY_LABELS_TH } from "@/lib/time";
-import type { Branch, Service, Staff, WorkingHour } from "@/modules/booking/types";
-import { saveStaff, saveStaffServices, saveWorkingHours } from "../../actions";
+import { ROLE_LABELS, type Branch, type MemberRole, type Service, type Staff, type WorkingHour } from "@/modules/booking/types";
+import { grantStaffAccess, revokeStaffAccess, saveStaff, saveStaffServices, saveWorkingHours } from "../../actions";
+import { ActionButton } from "@/components/action-button";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { IconArrowLeft } from "@/components/icons";
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon..Sun
 
 export default async function StaffDetailPage(props: PageProps<"/dashboard/[slug]/staff/[staffId]">) {
   const { slug, staffId } = await props.params;
-  const { supabase, tenant, canManage } = await getTenantContext(slug);
+  const { supabase, tenant, canManage, canAdmin } = await getTenantContext(slug);
 
   const { data: st } = await supabase.from("booking_staff").select("*").eq("tenant_id", tenant.id).eq("id", staffId).maybeSingle<Staff>();
   if (!st) notFound();
@@ -28,6 +30,17 @@ export default async function StaffDetailPage(props: PageProps<"/dashboard/[slug
   const services = (sv ?? []) as Service[];
   const linked = new Set((links ?? []).map((l: { service_id: string }) => l.service_id));
   const allServices = linked.size === 0;
+
+  // linked login (email from auth.users — admin only)
+  let account: { email: string; role: MemberRole | null } | null = null;
+  if (canAdmin && st.user_id) {
+    const admin = createAdminClient();
+    const [{ data: u }, { data: m }] = await Promise.all([
+      admin.auth.admin.getUserById(st.user_id),
+      admin.from("booking_members").select("role").eq("tenant_id", tenant.id).eq("user_id", st.user_id).maybeSingle<{ role: MemberRole }>(),
+    ]);
+    if (u.user?.email) account = { email: u.user.email, role: m?.role ?? null };
+  }
 
   return (
     <div className="space-y-6">
@@ -97,6 +110,39 @@ export default async function StaffDetailPage(props: PageProps<"/dashboard/[slug
                 </div>
                 <Checkbox label="เปิดใช้งาน (รับจองได้)" name="is_active" defaultChecked={st.is_active} />
               </ActionForm>
+            </Card>
+          )}
+
+          {canAdmin && (
+            <Card>
+              <h2 className="mb-1 font-semibold">บัญชีเข้าสู่ระบบของพนักงาน</h2>
+              <p className="mb-4 text-sm text-slate-500">
+                ให้พนักงานเข้าระบบเพื่อดูและจัดการคิวของตัวเอง — สิทธิ์ “พนักงาน” ดูคิว เปลี่ยนสถานะ และรับงานได้ แต่แก้ไขบริการ/ตั้งค่าร้านไม่ได้
+              </p>
+              {account ? (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+                  <span>
+                    <span className="font-medium">{account.email}</span>
+                    {account.role && <span className="text-slate-500"> · {ROLE_LABELS[account.role]}</span>}
+                  </span>
+                  {account.role !== "owner" && (
+                    <ActionButton action={revokeStaffAccess.bind(null, slug, st.id)} label="ถอนสิทธิ์" confirm="ถอนสิทธิ์เข้าระบบของพนักงานคนนี้?" />
+                  )}
+                </div>
+              ) : null}
+              {account?.role !== "owner" && (
+                <ActionForm action={grantStaffAccess.bind(null, slug, st.id)} submitLabel={account ? "อัปเดตสิทธิ์" : "สร้าง/ผูกบัญชี"}>
+                  <Field label="อีเมลพนักงาน" name="email" type="email" required defaultValue={account?.email ?? ""} autoComplete="off" />
+                  <div>
+                    <Label htmlFor="role">สิทธิ์</Label>
+                    <Select id="role" name="role" defaultValue={account?.role ?? "staff"}>
+                      <option value="staff">พนักงาน — ดู/จัดการคิว</option>
+                      <option value="manager">ผู้จัดการ — + แก้บริการ พนักงาน เวลาทำงาน</option>
+                      <option value="admin">ผู้ดูแล — + ตั้งค่าร้าน ธีม โลโก้</option>
+                    </Select>
+                  </div>
+                </ActionForm>
+              )}
             </Card>
           )}
         </div>

@@ -4,7 +4,7 @@ import { Alert, Card, StatusBadge, brandForeground, formatMoney } from "@/compon
 import { IconArrowLeft, IconCheck } from "@/components/icons";
 import { canCustomerCancel, getBookingByToken } from "@/modules/booking/booking-service";
 import { formatDate, formatTime } from "@/lib/time";
-import type { AppointmentStatus } from "@/modules/booking/types";
+import { SPECIES_EMOJI, SPECIES_LABELS, type AppointmentStatus } from "@/modules/booking/types";
 import { CancelBookingButton } from "@/components/booking/cancel-booking-button";
 
 export const metadata = { title: "รายละเอียดการจอง", robots: { index: false } };
@@ -48,6 +48,25 @@ export default async function BookingDetailPage(props: PageProps<"/b/[reference]
           </div>
           <StatusBadge status={booking.status as AppointmentStatus} />
         </div>
+        {booking.pet && (
+          <div className="mb-5 flex items-center gap-4 px-5">
+            {booking.pet_photo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={booking.pet_photo_url} alt={`รูปของ ${booking.pet.name}`} className="h-20 w-20 rounded-3xl object-cover ring-2 ring-white shadow-md" />
+            ) : (
+              <span aria-hidden className="flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-100 text-4xl">
+                {SPECIES_EMOJI[booking.pet.species]}
+              </span>
+            )}
+            <div>
+              <p className="font-display text-lg text-slate-900">{booking.pet.name}</p>
+              <p className="text-sm text-slate-500">
+                {SPECIES_LABELS[booking.pet.species]}
+                {booking.pet.breed && ` · ${booking.pet.breed}`}
+              </p>
+            </div>
+          </div>
+        )}
         <dl className="grid grid-cols-3 gap-x-3 gap-y-2.5 px-5 pb-5 text-sm">
           <dt className="text-slate-500">ร้าน</dt>
           <dd className="col-span-2 font-medium">{booking.tenant.name}</dd>

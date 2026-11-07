@@ -13,7 +13,7 @@ export const getStorefront = cache(async (slug: string) => {
   const { data: tenant } = await supabase
     .from("booking_tenants")
     .select(
-      "id, slug, name, description, logo_url, cover_url, primary_color, contact_phone, contact_email, contact_line, status, max_advance_days, cancel_cutoff_hours",
+      "id, slug, name, description, logo_url, cover_url, primary_color, accent_color, contact_phone, contact_email, contact_line, status, max_advance_days, cancel_cutoff_hours",
     )
     .eq("slug", slug)
     .in("status", ["trial", "active"])
@@ -24,7 +24,7 @@ export const getStorefront = cache(async (slug: string) => {
     supabase.from("booking_branches").select("id, name, address, phone, timezone").eq("tenant_id", tenant.id).eq("is_active", true).order("created_at"),
     supabase
       .from("booking_services")
-      .select("id, name, description, image_url, duration_minutes, price, sort_order")
+      .select("id, name, description, image_url, duration_minutes, price, sort_order, category, species")
       .eq("tenant_id", tenant.id)
       .eq("is_active", true)
       .eq("is_online_bookable", true)
