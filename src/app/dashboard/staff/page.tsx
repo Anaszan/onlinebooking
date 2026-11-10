@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
 import { Badge, Card, Checkbox, EmptyState, Field, Label, PageHeader, Select } from "@/components/ui";
@@ -9,8 +10,8 @@ import { IconChevronRight } from "@/components/icons";
 
 export const metadata = { title: "พนักงาน" };
 
-export default async function StaffPage(props: PageProps<"/dashboard/[slug]/staff">) {
-  const { slug } = await props.params;
+export default async function StaffPage() {
+  const slug = await requireShopSlug();
   const { supabase, tenant, canManage } = await getTenantContext(slug);
   const [{ data: s }, { data: b }, { data: h }] = await Promise.all([
     supabase.from("booking_staff").select("*").eq("tenant_id", tenant.id).order("display_name"),
@@ -32,7 +33,7 @@ export default async function StaffPage(props: PageProps<"/dashboard/[slug]/staf
             staff.map((st) => {
               const days = [...new Set(hours.filter((x) => x.staff_id === st.id).map((x) => x.weekday))].sort();
               return (
-                <Link key={st.id} href={`/dashboard/${slug}/staff/${st.id}`} className="block">
+                <Link key={st.id} href={`/dashboard/staff/${st.id}`} className="block">
                   <Card className="flex items-center justify-between gap-3 p-4 hover:border-brand">
                     <div className="min-w-0">
                       <p className="font-medium">

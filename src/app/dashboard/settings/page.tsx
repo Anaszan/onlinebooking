@@ -1,10 +1,10 @@
+import { requireShopSlug } from "@/lib/shop";
 import { ActionForm } from "@/components/action-form";
-import { ActionButton } from "@/components/action-button";
 import { Alert, Badge, Card, Checkbox, Field, Label, PageHeader, Textarea } from "@/components/ui";
 import { getTenantContext } from "@/lib/auth";
-import { env, shopUrl } from "@/lib/env";
-import { ROLE_LABELS, type Domain, type MemberRole } from "@/modules/booking/types";
-import { addDomain, removeDomain, removeShopImage, updateSettings, uploadShopImage, verifyDomain } from "../actions";
+import { shopUrl } from "@/lib/env";
+import { ROLE_LABELS, type MemberRole } from "@/modules/booking/types";
+import { removeShopImage, updateSettings, uploadShopImage } from "../actions";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ThemePicker } from "@/components/dashboard/theme-picker";
@@ -12,16 +12,13 @@ import { ShopImageUploader } from "@/components/dashboard/shop-image-uploader";
 
 export const metadata = { title: "ตั้งค่า" };
 
-const domainTone = { active: "green", verified: "green", provisioning: "blue", pending_verification: "amber", failed: "red" } as const;
 
-export default async function SettingsPage(props: PageProps<"/dashboard/[slug]/settings">) {
-  const { slug } = await props.params;
+export default async function SettingsPage() {
+  const slug = await requireShopSlug();
   const { supabase, tenant, canAdmin } = await getTenantContext(slug);
-  const [{ data: d }, { data: m }] = await Promise.all([
-    supabase.from("booking_domains").select("*").eq("tenant_id", tenant.id).order("created_at"),
+  const [{ data: m }] = await Promise.all([
     supabase.from("booking_members").select("user_id, role, created_at").eq("tenant_id", tenant.id).order("created_at"),
   ]);
-  const domains = (d ?? []) as Domain[];
   const members = (m ?? []) as { user_id: string; role: MemberRole }[];
   // emails live in auth.users — fetched server-side for admins only
   const emails = new Map<string, string>();
@@ -30,7 +27,6 @@ export default async function SettingsPage(props: PageProps<"/dashboard/[slug]/s
     const found = await Promise.all(members.slice(0, 50).map((mm) => admin.auth.admin.getUserById(mm.user_id)));
     found.forEach((r, i) => r.data.user?.email && emails.set(members[i].user_id, r.data.user.email));
   }
-  const rootHost = env.rootDomain.split(":")[0];
 
   return (
     <div className="space-y-8">
@@ -90,61 +86,18 @@ export default async function SettingsPage(props: PageProps<"/dashboard/[slug]/s
           </Card>
 
           <Card>
-            <h2 className="mb-2 font-semibold">ลิงก์หน้าร้าน</h2>
-            <ul className="space-y-1 text-sm">
-              <li>
-                <a href={`/s/${tenant.slug}`} className="font-mono text-brand" target="_blank" rel="noreferrer">
-                  {shopUrl(tenant.slug)}
-                </a>
-              </li>
-              <li className="font-mono text-slate-500">
-                https://{tenant.slug}.{rootHost}
-              </li>
-            </ul>
-          </Card>
-
-          <Card>
-            <h2 className="mb-1 font-semibold">Custom Domain</h2>
-            <p className="mb-4 text-sm text-slate-500">ใช้โดเมนของร้านเอง เช่น booking.example.com (แพ็กเกจ Pro ขึ้นไป)</p>
-            {domains.length > 0 && (
-              <ul className="mb-4 space-y-3">
-                {domains.map((dm) => (
-                  <li key={dm.id} className="rounded-lg border border-slate-200 p-3 text-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono font-medium">{dm.hostname}</span>
-                      <Badge tone={domainTone[dm.status]}>{dm.status}</Badge>
-                    </div>
-                    {dm.status !== "active" && (
-                      <div className="mt-2 space-y-1 rounded bg-slate-50 p-2 font-mono text-xs text-slate-600">
-                        <p>1) CNAME {dm.hostname} → cname.{rootHost}</p>
-                        <p className="break-all">
-                          2) TXT _sysrent-verify.{dm.hostname} = {dm.verification_token}
-                        </p>
-                      </div>
-                    )}
-                    {dm.last_error && <p className="mt-1 text-xs text-red-600">{dm.last_error}</p>}
-                    {canAdmin && (
-                      <div className="mt-2 flex gap-2">
-                        {dm.status !== "active" && <ActionButton action={verifyDomain.bind(null, slug, dm.id)} label="ตรวจสอบ DNS" variant="primary" />}
-                        <ActionButton action={removeDomain.bind(null, slug, dm.id)} label="ลบ" confirm={`ลบโดเมน ${dm.hostname}?`} />
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {canAdmin && (
-              <ActionForm action={addDomain.bind(null, slug)} submitLabel="เพิ่มโดเมน" resetOnSuccess>
-                <Field label="โดเมน" name="hostname" placeholder="booking.example.com" required />
-              </ActionForm>
-            )}
+            <h2 className="mb-2 font-semibold">ลิงก์หน้าจองของร้าน</h2>
+            <p className="mb-2 text-sm text-slate-500">แชร์ลิงก์นี้ให้ลูกค้า (LINE, Facebook, Google Maps)</p>
+            <a href="/" className="break-all font-mono text-sm text-brand" target="_blank" rel="noreferrer">
+              {shopUrl()}
+            </a>
           </Card>
 
           <Card>
             <h2 className="mb-1 font-semibold">สมาชิกทีม</h2>
             <p className="mb-3 text-sm text-slate-500">
               เพิ่มบัญชีเข้าสู่ระบบให้พนักงานได้ที่หน้า{" "}
-              <Link href={`/dashboard/${slug}/staff`} className="font-medium text-slate-900 underline">
+              <Link href={`/dashboard/staff`} className="font-medium text-slate-900 underline">
                 พนักงาน
               </Link>
             </p>

@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionForm } from "@/components/action-form";
@@ -12,8 +13,9 @@ import { IconArrowLeft } from "@/components/icons";
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon..Sun
 
-export default async function StaffDetailPage(props: PageProps<"/dashboard/[slug]/staff/[staffId]">) {
-  const { slug, staffId } = await props.params;
+export default async function StaffDetailPage(props: PageProps<"/dashboard/staff/[staffId]">) {
+  const { staffId } = await props.params;
+  const slug = await requireShopSlug();
   const { supabase, tenant, canManage, canAdmin } = await getTenantContext(slug);
 
   const { data: st } = await supabase.from("booking_staff").select("*").eq("tenant_id", tenant.id).eq("id", staffId).maybeSingle<Staff>();
@@ -44,7 +46,7 @@ export default async function StaffDetailPage(props: PageProps<"/dashboard/[slug
 
   return (
     <div className="space-y-6">
-      <Link href={`/dashboard/${slug}/staff`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
+      <Link href={`/dashboard/staff`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
         <IconArrowLeft size={14} />
         พนักงานทั้งหมด
       </Link>

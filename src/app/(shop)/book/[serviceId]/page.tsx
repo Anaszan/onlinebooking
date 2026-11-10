@@ -1,10 +1,12 @@
+import { requireShopSlug } from "@/lib/shop";
 import { notFound } from "next/navigation";
 import { getStorefront } from "@/modules/booking/public-catalog";
 import { BookingFlow } from "@/components/booking/booking-flow";
 import { addDays, toDateKey } from "@/lib/time";
 
-export default async function BookServicePage(props: PageProps<"/s/[slug]/book/[serviceId]">) {
-  const { slug, serviceId } = await props.params;
+export default async function BookServicePage(props: PageProps<"/book/[serviceId]">) {
+  const { serviceId } = await props.params;
+  const slug = await requireShopSlug();
   const sf = await getStorefront(slug);
   if (!sf) notFound();
   const service = sf.services.find((s) => s.id === serviceId);

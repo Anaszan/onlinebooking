@@ -103,9 +103,13 @@ beforeAll(async () => {
     insert into public.booking_platform_admins (user_id) values ('${ADMIN}');
   `);
 
+  // The app runs a single shop, but RLS is still tested with two tenants
+  // (created server-side) to prove data can't leak between them.
   await as("authenticated", USER_A);
+  await expectError(db.query(`select public.booking_create_tenant('hack', 'Hack')`), /permission denied/);
+  await as("service_role", USER_A);
   tenantA = (await one<{ id: string }>(`select public.booking_create_tenant('shop-a', 'Shop A') as id`))!.id;
-  await as("authenticated", USER_B);
+  await as("service_role", USER_B);
   tenantB = (await one<{ id: string }>(`select public.booking_create_tenant('shop-b', 'Shop B') as id`))!.id;
 
   await as("authenticated", USER_A);
@@ -304,6 +308,36 @@ describe("pet care", () => {
     expect(r.rows.map((x) => x.name)).toEqual([`${tenantA}/a.jpg`]);
     await as("anon");
     await expectError(db.query(`select name from storage.objects`), /permission denied/);
+  });
+});
+
+describe("single-shop setup", () => {
+  it("can only be run server-side and only once", async () => {
+    await as("authenticated", USER_A);
+    await expectError(db.query(`select public.booking_setup_shop($1, 'x')`, [USER_A]), /permission denied/);
+    await as("service_role");
+    // a shop already exists in this database
+    await expectError(db.query(`select public.booking_setup_shop($1, 'x')`, [USER_A]), /SHOP_EXISTS/);
+  });
+
+  it("creates an unlimited, active shop on an empty database", async () => {
+    const fresh = new PGlite({ extensions: { btree_gist, pgcrypto } });
+    await fresh.exec(SUPABASE_STUB);
+    const dir = join(process.cwd(), "supabase", "migrations");
+    for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
+      await fresh.exec(readFileSync(join(dir, file), "utf8"));
+    }
+    await fresh.exec(`insert into auth.users (id, email) values ('${USER_A}', 'a@test.dev'); set role service_role;`);
+    const id = (await fresh.query<{ id: string }>(`select public.booking_setup_shop($1, 'ร้านน้องหมา') as id`, [USER_A])).rows[0].id;
+    const t = (
+      await fresh.query<{ status: string; code: string; max_services: number | null }>(
+        `select t.status, p.code, p.max_services from public.booking_tenants t join public.booking_plans p on p.id = t.plan_id where t.id = $1`,
+        [id],
+      )
+    ).rows[0];
+    expect(t).toEqual({ status: "active", code: "shop", max_services: null });
+    await expect(fresh.query(`select public.booking_setup_shop($1, 'again')`, [USER_A])).rejects.toThrow(/SHOP_EXISTS/);
+    await fresh.close();
   });
 });
 

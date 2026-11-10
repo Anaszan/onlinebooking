@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
 import { ActionButton } from "@/components/action-button";
@@ -8,8 +9,8 @@ import { deleteService, saveService } from "../actions";
 
 export const metadata = { title: "บริการ" };
 
-export default async function ServicesPage(props: PageProps<"/dashboard/[slug]/services">) {
-  const { slug } = await props.params;
+export default async function ServicesPage(props: PageProps<"/dashboard/services">) {
+  const slug = await requireShopSlug();
   const sp = await props.searchParams;
   const { supabase, tenant, canManage } = await getTenantContext(slug);
   const { data } = await supabase.from("booking_services").select("*").eq("tenant_id", tenant.id).order("sort_order").order("name");

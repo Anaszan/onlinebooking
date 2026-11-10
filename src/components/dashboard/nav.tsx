@@ -16,9 +16,9 @@ const items = [
   { href: "/settings", label: "ตั้งค่าร้าน", Icon: IconSettings, level: 2 },
 ];
 
-export function DashboardNav({ slug, level }: { slug: string; level: 0 | 1 | 2 }) {
+export function DashboardNav({ level }: { level: 0 | 1 | 2 }) {
   const pathname = usePathname();
-  const base = `/dashboard/${slug}`;
+  const base = "/dashboard";
   return (
     <nav className="flex gap-0.5 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0">
       {items.filter((it) => it.level <= level).map(({ href: h, label, Icon }) => {

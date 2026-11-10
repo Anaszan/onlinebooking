@@ -111,7 +111,7 @@ export default async function BookingDetailPage(props: PageProps<"/b/[reference]
         )
       )}
 
-      <Link href={`/s/${booking.tenant.slug}`} className="flex items-center justify-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900">
+      <Link href={"/"} className="flex items-center justify-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900">
         <IconArrowLeft size={15} />
         กลับไปหน้าร้าน
       </Link>

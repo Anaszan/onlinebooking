@@ -1,13 +1,11 @@
 "use server";
 
-import { resolveTxt } from "node:dns/promises";
 import { revalidatePath } from "next/cache";
 import { assertTenantRole, ADMIN_ROLES } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { actionError, AppError, fromDbError, type ActionResult } from "@/lib/errors";
 import {
   branchForm,
-  domainForm,
   serviceForm,
   staffAccountForm,
   staffForm,
@@ -31,7 +29,7 @@ type Prev = ActionResult | null;
 const fd = (f: FormData) => Object.fromEntries(f);
 
 function done(slug: string, message = "บันทึกแล้ว", sub = ""): ActionResult {
-  revalidatePath(`/dashboard/${slug}${sub}`, "layout");
+  revalidatePath(`/dashboard${sub}`, "layout");
   return { ok: true, message };
 }
 
@@ -101,11 +99,11 @@ export async function deleteService(slug: string, id: string): Promise<ActionRes
         .eq("tenant_id", tenantId)
         .eq("id", id);
       if (off.error) throw fromDbError(off.error);
-      revalidatePath(`/dashboard/${slug}`, "layout");
+      revalidatePath("/dashboard", "layout");
       return { ok: true, message: "บริการนี้มีประวัติการจอง จึงปิดใช้งานแทนการลบ" };
     }
     if (error) throw fromDbError(error);
-    revalidatePath(`/dashboard/${slug}`, "layout");
+    revalidatePath("/dashboard", "layout");
     return { ok: true, message: "ลบบริการแล้ว" };
   } catch (e) {
     return actionError(e);
@@ -306,7 +304,7 @@ export async function grantStaffAccess(slug: string, staffId: string, _p: Prev, 
     const link = await admin.from("booking_staff").update({ user_id: userId }).eq("tenant_id", tenantId).eq("id", staffId);
     if (link.error) throw fromDbError(link.error);
 
-    revalidatePath(`/dashboard/${slug}`, "layout");
+    revalidatePath("/dashboard", "layout");
     return {
       ok: true,
       message: password
@@ -338,7 +336,7 @@ export async function revokeStaffAccess(slug: string, staffId: string): Promise<
     if (member?.role === "owner") throw new AppError("FORBIDDEN", "ไม่สามารถถอนสิทธิ์เจ้าของร้านได้", 403);
     await admin.from("booking_members").delete().eq("tenant_id", tenantId).eq("user_id", staff.user_id);
     await admin.from("booking_staff").update({ user_id: null }).eq("tenant_id", tenantId).eq("id", staffId);
-    revalidatePath(`/dashboard/${slug}`, "layout");
+    revalidatePath("/dashboard", "layout");
     return { ok: true, message: "ถอนสิทธิ์เข้าระบบแล้ว" };
   } catch (e) {
     return actionError(e);
@@ -457,83 +455,3 @@ export async function createManualBooking(slug: string, _p: Prev, form: FormData
   }
 }
 
-// ---------------------------------------------------------------- domains
-export async function addDomain(slug: string, _p: Prev, form: FormData): Promise<ActionResult> {
-  try {
-    const { supabase, tenantId } = await assertTenantRole(slug, ADMIN_ROLES);
-    const { hostname } = domainForm.parse(fd(form));
-    const root = (process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "").split(":")[0];
-    if (root && (hostname === root || hostname.endsWith(`.${root}`))) {
-      throw new AppError("VALIDATION", `ไม่สามารถใช้โดเมนย่อยของ ${root} ได้`, 422);
-    }
-    const { data: plan } = await supabase
-      .from("booking_tenants")
-      .select("plan:booking_plans(features)")
-      .eq("id", tenantId)
-      .single<{ plan: { features: Record<string, boolean> } | null }>();
-    if (!plan?.plan?.features?.custom_domain) {
-      throw new AppError("QUOTA_EXCEEDED", "แพ็กเกจปัจจุบันไม่รองรับ Custom Domain กรุณาอัปเกรด", 402);
-    }
-    const { error } = await supabase.from("booking_domains").insert({ tenant_id: tenantId, hostname });
-    if (error) throw fromDbError(error);
-    return done(slug, "เพิ่มโดเมนแล้ว — ตั้งค่า DNS ตามคำแนะนำ แล้วกดตรวจสอบ");
-  } catch (e) {
-    return actionError(e);
-  }
-}
-
-/**
- * Ownership check: TXT record  _sysrent-verify.<hostname>  =  <verification_token>
- * Status is changed with the privileged client (merchants cannot set it).
- */
-export async function verifyDomain(slug: string, id: string): Promise<ActionResult> {
-  try {
-    const { supabase, tenantId } = await assertTenantRole(slug, ADMIN_ROLES);
-    const { data: d } = await supabase
-      .from("booking_domains")
-      .select("id, hostname, verification_token")
-      .eq("tenant_id", tenantId)
-      .eq("id", id)
-      .maybeSingle<{ id: string; hostname: string; verification_token: string }>();
-    if (!d) throw new AppError("NOT_FOUND", "ไม่พบโดเมน", 404);
-
-    let found = false;
-    let lastError: string | null = null;
-    try {
-      const records = await resolveTxt(`_sysrent-verify.${d.hostname}`);
-      found = records.some((chunks) => chunks.join("") === d.verification_token);
-      if (!found) lastError = "พบ TXT record แต่ค่าไม่ตรงกับ token";
-    } catch {
-      lastError = "ไม่พบ TXT record (DNS อาจยังไม่อัปเดต รอสักครู่แล้วลองใหม่)";
-    }
-
-    const admin = createAdminClient();
-    await admin
-      .from("booking_domains")
-      .update({
-        // TLS provisioning hook: call your hosting provider's domain API here
-        // (e.g. Vercel "add domain to project") and move verified -> active on success.
-        status: found ? "active" : "failed",
-        verified_at: found ? new Date().toISOString() : null,
-        last_checked_at: new Date().toISOString(),
-        last_error: found ? null : lastError,
-      })
-      .eq("id", d.id)
-      .eq("tenant_id", tenantId);
-    revalidatePath(`/dashboard/${slug}/settings`);
-    return found ? { ok: true, message: "ยืนยันโดเมนสำเร็จ" } : { ok: false, error: lastError ?? "ยืนยันไม่สำเร็จ" };
-  } catch (e) {
-    return actionError(e);
-  }
-}
-
-export async function removeDomain(slug: string, id: string): Promise<ActionResult> {
-  try {
-    const { supabase, tenantId } = await assertTenantRole(slug, ADMIN_ROLES);
-    const { error } = await supabase.from("booking_domains").delete().eq("tenant_id", tenantId).eq("id", id);
-    if (error) throw fromDbError(error);
-    return done(slug, "ลบโดเมนแล้ว");
-  } catch (e) {
-    return actionError(e);
-  }
-}

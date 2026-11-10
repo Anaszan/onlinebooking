@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import Link from "next/link";
 import { Card, EmptyState, Input, PageHeader } from "@/components/ui";
 import { getTenantContext } from "@/lib/auth";
@@ -7,8 +8,8 @@ import { IconChevronLeft, IconChevronRight } from "@/components/icons";
 export const metadata = { title: "ลูกค้า" };
 const PAGE_SIZE = 30;
 
-export default async function CustomersPage(props: PageProps<"/dashboard/[slug]/customers">) {
-  const { slug } = await props.params;
+export default async function CustomersPage(props: PageProps<"/dashboard/customers">) {
+  const slug = await requireShopSlug();
   const sp = await props.searchParams;
   const { supabase, tenant } = await getTenantContext(slug);
   const q = typeof sp.q === "string" ? sp.q.trim().replace(/[%,()]/g, "") : "";
@@ -49,7 +50,7 @@ export default async function CustomersPage(props: PageProps<"/dashboard/[slug]/
               {customers.map((c) => (
                 <tr key={c.id} className="hover:bg-slate-50">
                   <td className="px-4 py-2.5">
-                    <Link href={`/dashboard/${slug}/customers/${c.id}`} className="font-medium text-brand">
+                    <Link href={`/dashboard/customers/${c.id}`} className="font-medium text-brand">
                       {c.full_name}
                     </Link>
                   </td>

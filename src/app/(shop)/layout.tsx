@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -5,20 +6,20 @@ import type { CSSProperties } from "react";
 import { getStorefront } from "@/modules/booking/public-catalog";
 import { brandForeground } from "@/components/ui";
 
-export async function generateMetadata(props: LayoutProps<"/s/[slug]">): Promise<Metadata> {
-  const { slug } = await props.params;
+export async function generateMetadata(): Promise<Metadata> {
+  const slug = await requireShopSlug();
   const sf = await getStorefront(slug);
-  if (!sf) return { title: "ไม่พบร้าน" };
-  const description = sf.tenant.description ?? `จองคิวออนไลน์กับ ${sf.tenant.name}`;
+  if (!sf) return { title: "จองคิวออนไลน์" };
+  const description = sf.tenant.description ?? `จองคิวอาบน้ำ ตัดขน และดูแลสัตว์เลี้ยงออนไลน์กับ ${sf.tenant.name}`;
   return {
-    title: `จองคิว ${sf.tenant.name}`,
+    title: { absolute: `${sf.tenant.name} — จองคิวอาบน้ำ ตัดขน ดูแลสัตว์เลี้ยง` },
     description,
     openGraph: { title: sf.tenant.name, description, images: sf.tenant.cover_url ? [sf.tenant.cover_url] : undefined },
   };
 }
 
-export default async function ShopLayout(props: LayoutProps<"/s/[slug]">) {
-  const { slug } = await props.params;
+export default async function ShopLayout(props: LayoutProps<"/">) {
+  const slug = await requireShopSlug();
   const sf = await getStorefront(slug);
   if (!sf) notFound();
   const { tenant } = sf;
@@ -45,7 +46,7 @@ export default async function ShopLayout(props: LayoutProps<"/s/[slug]">) {
               {tenant.name.slice(0, 1)}
             </div>
           )}
-          <Link href={`/s/${tenant.slug}`} className="min-w-0 truncate font-display text-lg text-slate-900">
+          <Link href={"/"} className="min-w-0 truncate font-display text-lg text-slate-900">
             {tenant.name}
           </Link>
         </div>
@@ -58,9 +59,9 @@ export default async function ShopLayout(props: LayoutProps<"/s/[slug]">) {
       )}
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">{props.children}</main>
       <footer className="py-6 text-center text-xs text-slate-500">
-        ขับเคลื่อนโดย{" "}
-        <Link href="/" className="font-medium text-slate-600 hover:text-slate-900">
-          SYSRENT Booking
+        © {tenant.name}{" "}·{" "}
+        <Link href="/login" className="font-medium text-slate-600 hover:text-slate-900">
+          สำหรับพนักงาน
         </Link>
       </footer>
     </div>

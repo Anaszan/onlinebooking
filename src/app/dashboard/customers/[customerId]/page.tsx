@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionForm } from "@/components/action-form";
@@ -8,8 +9,9 @@ import { SPECIES_EMOJI, SPECIES_LABELS, type AppointmentStatus, type Customer, t
 import { updateCustomer } from "../../actions";
 import { IconArrowLeft } from "@/components/icons";
 
-export default async function CustomerDetailPage(props: PageProps<"/dashboard/[slug]/customers/[customerId]">) {
-  const { slug, customerId } = await props.params;
+export default async function CustomerDetailPage(props: PageProps<"/dashboard/customers/[customerId]">) {
+  const { customerId } = await props.params;
+  const slug = await requireShopSlug();
   const { supabase, tenant, canManage } = await getTenantContext(slug);
   const { data: c } = await supabase.from("booking_customers").select("*").eq("tenant_id", tenant.id).eq("id", customerId).maybeSingle<Customer>();
   if (!c) notFound();
@@ -49,7 +51,7 @@ export default async function CustomerDetailPage(props: PageProps<"/dashboard/[s
 
   return (
     <div className="space-y-6">
-      <Link href={`/dashboard/${slug}/customers`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
+      <Link href={`/dashboard/customers`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
         <IconArrowLeft size={14} />
         ลูกค้าทั้งหมด
       </Link>

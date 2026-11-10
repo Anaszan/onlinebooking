@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import Link from "next/link";
 import { Alert, Card, PageHeader, StatusBadge } from "@/components/ui";
 import { getTenantContext } from "@/lib/auth";
@@ -6,8 +7,8 @@ import { shopUrl } from "@/lib/env";
 import type { AppointmentStatus, Plan } from "@/modules/booking/types";
 import { IconArrowRight, IconCheck } from "@/components/icons";
 
-export default async function OverviewPage(props: PageProps<"/dashboard/[slug]">) {
-  const { slug } = await props.params;
+export default async function OverviewPage(props: PageProps<"/dashboard">) {
+  const slug = await requireShopSlug();
   const sp = await props.searchParams;
   const { supabase, tenant } = await getTenantContext(slug);
 
@@ -85,7 +86,7 @@ export default async function OverviewPage(props: PageProps<"/dashboard/[slug]">
                 >
                   {s.done ? <IconCheck size={14} strokeWidth={2.5} /> : i + 1}
                 </span>
-                <Link href={`/dashboard/${slug}${s.href}`} className={s.done ? "text-slate-500 line-through" : "font-medium text-slate-900 underline hover:no-underline"}>
+                <Link href={`/dashboard${s.href}`} className={s.done ? "text-slate-500 line-through" : "font-medium text-slate-900 underline hover:no-underline"}>
                   {s.label}
                 </Link>
               </li>
@@ -94,8 +95,8 @@ export default async function OverviewPage(props: PageProps<"/dashboard/[slug]">
               <span className="tnum flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-xs text-slate-500">4</span>
               <span>
                 แชร์ลิงก์ร้าน:{" "}
-                <a href={`/s/${tenant.slug}`} className="font-mono text-brand" target="_blank" rel="noreferrer">
-                  {shopUrl(tenant.slug)}
+                <a href={"/"} className="font-mono text-brand" target="_blank" rel="noreferrer">
+                  {shopUrl()}
                 </a>
               </span>
             </li>
@@ -125,7 +126,7 @@ export default async function OverviewPage(props: PageProps<"/dashboard/[slug]">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">คิววันนี้</h2>
             <Link
-              href={`/dashboard/${slug}/appointments`}
+              href={`/dashboard/appointments`}
               className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900"
             >
               จัดการคิว

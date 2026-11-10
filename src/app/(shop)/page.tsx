@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState, formatMoney } from "@/components/ui";
@@ -5,8 +6,8 @@ import { IconChat, IconChevronRight, IconClock, IconMail, IconPhone, IconPin } f
 import { getStorefront } from "@/modules/booking/public-catalog";
 import { CATEGORY_LABELS, SERVICE_CATEGORIES, SPECIES_EMOJI, SPECIES_LABELS } from "@/modules/booking/types";
 
-export default async function ShopPage(props: PageProps<"/s/[slug]">) {
-  const { slug } = await props.params;
+export default async function ShopPage() {
+  const slug = await requireShopSlug();
   const sf = await getStorefront(slug);
   if (!sf) notFound();
   const { tenant, services, branches } = sf;
@@ -30,7 +31,7 @@ export default async function ShopPage(props: PageProps<"/s/[slug]">) {
             {services.filter((s) => (s.category ?? "other") === cat).map((s) => (
               <li key={s.id}>
                 <Link
-                  href={`/s/${tenant.slug}/book/${s.id}`}
+                  href={`/book/${s.id}`}
                   className="group flex items-center gap-4 px-4 py-4 transition-colors hover:bg-slate-50 sm:px-5"
                 >
                   <div className="min-w-0 flex-1">

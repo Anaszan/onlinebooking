@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { getTenantContext } from "@/lib/auth";
@@ -7,8 +8,8 @@ import { ROLE_LABELS } from "@/modules/booking/types";
 import { DashboardNav } from "@/components/dashboard/nav";
 import { signOut } from "@/app/(auth)/actions";
 
-export default async function TenantLayout(props: LayoutProps<"/dashboard/[slug]">) {
-  const { slug } = await props.params;
+export default async function TenantLayout(props: LayoutProps<"/dashboard">) {
+  const slug = await requireShopSlug();
   const { tenant, role, user, canManage, canAdmin } = await getTenantContext(slug);
   const navLevel = canAdmin ? 2 : canManage ? 1 : 0;
 
@@ -25,7 +26,7 @@ export default async function TenantLayout(props: LayoutProps<"/dashboard/[slug]
             {tenant.name.slice(0, 1)}
           </span>
           <div className="min-w-0 flex-1">
-            <Link href="/dashboard?list=1" className="block truncate font-display text-[15px] text-slate-900 hover:underline">
+            <Link href="/dashboard" className="block truncate font-display text-[15px] text-slate-900 hover:underline">
               {tenant.name}
             </Link>
             <div className="mt-0.5 flex gap-1">
@@ -34,10 +35,10 @@ export default async function TenantLayout(props: LayoutProps<"/dashboard/[slug]
             </div>
           </div>
         </div>
-        <DashboardNav slug={slug} level={navLevel} />
+        <DashboardNav level={navLevel} />
         <div className="mt-auto hidden space-y-1 border-t border-slate-200 px-3 py-3 md:block">
           <a
-            href={`/s/${tenant.slug}`}
+            href={"/"}
             target="_blank"
             rel="noreferrer"
             className="flex h-10 items-center gap-2.5 rounded-full px-3.5 text-sm text-slate-600 transition-colors hover:bg-slate-200/60 hover:text-slate-900"
@@ -64,7 +65,7 @@ export default async function TenantLayout(props: LayoutProps<"/dashboard/[slug]
       <main className="min-w-0 flex-1 px-4 py-6 md:px-10 md:py-9">
         <div className="mx-auto max-w-5xl">
           <div className="mb-5 flex justify-end md:hidden">
-            <a href={`/s/${tenant.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-slate-600">
+            <a href={"/"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-slate-600">
               ดูหน้าร้าน
               <IconArrowUpRight size={14} />
             </a>

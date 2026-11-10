@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
 import { Card, EmptyState, Input, Label, PageHeader, Select, StatusBadge, cn, formatMoney } from "@/components/ui";
@@ -40,8 +41,8 @@ interface Row {
   pet: { name: string; species: Species; breed: string | null; weight_kg: number | null; notes: string | null; photo_path: string | null } | null;
 }
 
-export default async function AppointmentsPage(props: PageProps<"/dashboard/[slug]/appointments">) {
-  const { slug } = await props.params;
+export default async function AppointmentsPage(props: PageProps<"/dashboard/appointments">) {
+  const slug = await requireShopSlug();
   const sp = await props.searchParams;
   const { supabase, tenant, user, role } = await getTenantContext(slug);
 
@@ -288,7 +289,7 @@ export default async function AppointmentsPage(props: PageProps<"/dashboard/[slu
 
       {view === "day" ? (
         staff.length === 0 ? (
-          <EmptyState title="ยังไม่มีพนักงานในสาขานี้" action={<Link href={`/dashboard/${slug}/staff`} className="inline-flex items-center gap-1 text-sm font-medium text-slate-900 underline hover:no-underline">เพิ่มพนักงาน<IconChevronRight size={14} /></Link>} />
+          <EmptyState title="ยังไม่มีพนักงานในสาขานี้" action={<Link href={`/dashboard/staff`} className="inline-flex items-center gap-1 text-sm font-medium text-slate-900 underline hover:no-underline">เพิ่มพนักงาน<IconChevronRight size={14} /></Link>} />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {staff.map((s) => {
@@ -308,7 +309,6 @@ export default async function AppointmentsPage(props: PageProps<"/dashboard/[slu
                           key={r.id}
                           r={r}
                           tz={tz}
-                          slug={slug}
                           photoUrl={r.pet?.photo_path ? (photoUrls.get(r.pet.photo_path) ?? null) : null}
                           candidates={candidatesById.get(r.id) ?? []}
                           myStaffId={myStaff?.id ?? null}
@@ -421,14 +421,12 @@ export default async function AppointmentsPage(props: PageProps<"/dashboard/[slu
 function AppointmentCard({
   r,
   tz,
-  slug,
   photoUrl,
   candidates,
   myStaffId,
 }: {
   r: Row;
   tz: string;
-  slug: string;
   photoUrl: string | null;
   candidates: StaffCandidate[];
   myStaffId: string | null;
@@ -465,7 +463,7 @@ function AppointmentCard({
               </span>
             </p>
           )}
-          <Link href={`/dashboard/${slug}/customers/${r.customer.id}`} className={cn("block truncate hover:text-brand", r.pet ? "text-sm text-slate-600" : "font-medium")}>
+          <Link href={`/dashboard/customers/${r.customer.id}`} className={cn("block truncate hover:text-brand", r.pet ? "text-sm text-slate-600" : "font-medium")}>
             {r.pet ? `เจ้าของ: ${r.customer.full_name}` : r.customer.full_name}
           </Link>
           <p className="truncate text-sm text-slate-500">

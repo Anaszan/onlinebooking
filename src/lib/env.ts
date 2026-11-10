@@ -3,8 +3,6 @@ export const env = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseKey:
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-  /** e.g. "sysrent.shop" — shops get <slug>.sysrent.shop */
-  rootDomain: (process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000").toLowerCase(),
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 };
 
@@ -16,7 +14,7 @@ export function assertPublicEnv() {
   }
 }
 
-/** Public URL of a shop's booking page. */
-export function shopUrl(slug: string) {
-  return `${env.appUrl.replace(/\/$/, "")}/s/${slug}`;
+/** Public URL of the shop's booking page (the site root). */
+export function shopUrl() {
+  return `${env.appUrl.replace(/\/$/, "")}/`;
 }

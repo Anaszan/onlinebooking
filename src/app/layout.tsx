@@ -8,8 +8,8 @@ const thai = Anuphan({ variable: "--font-thai", subsets: ["thai", "latin"], weig
 const code = Geist_Mono({ variable: "--font-code", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "SYSRENT Booking — ระบบจองคิวออนไลน์", template: "%s | SYSRENT Booking" },
-  description: "ระบบจองคิวออนไลน์สำหรับทุกธุรกิจบริการ ร้านเสริมสวย คลินิก สตูดิโอ ฟิตเนส และอื่น ๆ",
+  title: { default: "จองคิวอาบน้ำ ตัดขน ดูแลสัตว์เลี้ยง", template: "%s | จองคิวร้านสัตว์เลี้ยง" },
+  description: "ระบบจองคิวออนไลน์สำหรับร้านอาบน้ำ ตัดขน สปา และรับฝากสัตว์เลี้ยง",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
 };
 

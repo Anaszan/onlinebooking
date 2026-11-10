@@ -1,3 +1,4 @@
+import { requireShopSlug } from "@/lib/shop";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
 import { ActionButton } from "@/components/action-button";
@@ -9,8 +10,8 @@ import { addTimeOff, deleteTimeOff, saveBranch } from "../actions";
 
 export const metadata = { title: "สาขา & วันหยุด" };
 
-export default async function BranchesPage(props: PageProps<"/dashboard/[slug]/branches">) {
-  const { slug } = await props.params;
+export default async function BranchesPage(props: PageProps<"/dashboard/branches">) {
+  const slug = await requireShopSlug();
   const sp = await props.searchParams;
   const { supabase, tenant, canManage } = await getTenantContext(slug);
   const [{ data: b }, { data: s }, { data: t }] = await Promise.all([
